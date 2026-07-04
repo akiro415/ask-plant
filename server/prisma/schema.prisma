@@ -1,0 +1,321 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// 공통 코드 (상태, 이력 유형, 위치 유형 등)
+// groupCode 예: PLANT_STATUS, HISTORY_TYPE, LOCATION_TYPE
+// ─────────────────────────────────────────────
+model CommonCode {
+  id          String   @id @default(cuid())
+  groupCode   String
+  code        String
+  name        String
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  plantsByStatus     Plant[]        @relation("PlantStatus")
+  plantsByOriginType Plant[]        @relation("OriginType")
+  historiesByType    PlantHistory[] @relation("HistoryType")
+  locationsByType    PlantLocation[] @relation("LocationType")
+
+  @@unique([groupCode, code])
+  @@index([groupCode, isActive])
+  @@map("common_codes")
+}
+
+// ─────────────────────────────────────────────
+// QR 일련번호 — 접두사별 원자적 증가
+//
+// QR 번호 규칙: {PREFIX}-{SEQUENCE(6자리)}
+//   예) CON-000001, LTH-000001, CAT-000001
+//
+// - PREFIX: Species.category.code (PlantCategory, 3자리 대문자)
+// - SEQUENCE: 접두사별 독립 카운터 (QrSequence.lastNumber + 1)
+// - 미분류 품종(categoryId null): OTH-000001
+// - 생성 시 트랜잭션으로 QrSequence 업데이트 후 Plant.qrCode 저장
+// ─────────────────────────────────────────────
+model QrSequence {
+  prefix     String   @id @db.VarChar(3)
+  lastNumber Int      @default(0)
+  updatedAt  DateTime @updatedAt
+
+  @@map("qr_sequences")
+}
+
+// ─────────────────────────────────────────────
+// 품종 대분류 — QR 접두사의 근거 (CON, LTH, CAT, AFR, OTH 등)
+// Species.qrPrefix를 대체: 접두사를 Species마다 중복 저장하지 않고
+// 카테고리 1곳에서 관리한다.
+// ─────────────────────────────────────────────
+model PlantCategory {
+  id          String   @id @default(cuid())
+  code        String   @unique @db.VarChar(3)
+  name        String
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  species Species[]
+
+  @@map("plant_categories")
+}
+
+// ─────────────────────────────────────────────
+// 사용자
+// ─────────────────────────────────────────────
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  phone        String?
+  role         UserRole @default(CUSTOMER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownedPlants    Plant[]        @relation("PlantOwner")
+  cartItems      Cart[]
+  plantHistories PlantHistory[] @relation("HistoryPerformer")
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+  CUSTOMER
+}
+
+// ─────────────────────────────────────────────
+// 품종 (Species) — displayName 중심 마스터
+//
+// 다육 시장 특성 반영:
+//   - 학명 미상 (scientificName null + taxonRank SP)
+//   - 유통명만 존재 (displayName에 "Pink Ruby" 등)
+//   - sp / ssp / 교배종 / 필드넘버 / 판매자명
+// ─────────────────────────────────────────────
+model Species {
+  id                       String     @id @default(cuid())
+  displayName              String
+  scientificName           String?
+  englishName              String?
+  koreanName               String?
+  fieldNumber              String?
+  sellerName               String?
+  taxonRank                TaxonRank  @default(SPECIES)
+  isHybrid                 Boolean    @default(false)
+  parentSpecies1Id         String?
+  parentSpecies2Id         String?
+  categoryId               String?
+  family                   String?
+  genus                    String?
+  description              String?
+  careGuide                String?
+  defaultWateringCycleDays Int?
+  thumbnailUrl             String?
+  isActive                 Boolean    @default(true)
+  createdAt                DateTime   @default(now())
+  updatedAt                DateTime   @updatedAt
+
+  parentSpecies1  Species?  @relation("HybridParent1", fields: [parentSpecies1Id], references: [id])
+  parentSpecies2  Species?  @relation("HybridParent2", fields: [parentSpecies2Id], references: [id])
+  childrenAsParent1 Species[] @relation("HybridParent1")
+  childrenAsParent2 Species[] @relation("HybridParent2")
+  category        PlantCategory? @relation(fields: [categoryId], references: [id])
+
+  plants Plant[]
+
+  @@index([displayName])
+  @@index([scientificName])
+  @@index([fieldNumber])
+  @@index([genus])
+  @@index([categoryId])
+  @@map("species")
+}
+
+enum TaxonRank {
+  SPECIES
+  SP
+  SSP
+  VARIETY
+  CULTIVAR
+  HYBRID
+}
+
+// ─────────────────────────────────────────────
+// 위치 (계층 구조 + 지도 좌표)
+// imagePath: 위치 평면도/배치도 이미지
+// posX, posY: 이미지 위 상대 좌표 (0.0 ~ 1.0)
+// ─────────────────────────────────────────────
+model PlantLocation {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  typeId      String?
+  parentId    String?
+  imagePath   String?
+  posX        Float?
+  posY        Float?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  type     CommonCode?     @relation("LocationType", fields: [typeId], references: [id])
+  parent   PlantLocation?  @relation("LocationHierarchy", fields: [parentId], references: [id])
+  children PlantLocation[] @relation("LocationHierarchy")
+
+  plants        Plant[]
+  historiesFrom PlantHistory[] @relation("HistoryFromLocation")
+  historiesTo   PlantHistory[] @relation("HistoryToLocation")
+
+  @@index([parentId])
+  @@index([typeId])
+  @@map("plant_locations")
+}
+
+// ─────────────────────────────────────────────
+// 개체 (Plant) — QR로 식별되는 개별 다육
+// qrCode: QrSequence + Species.qrPrefix 로 발급
+// parentPlantId: 삽목·분지·접목 등 번식 원본 개체
+// ─────────────────────────────────────────────
+model Plant {
+  id             String     @id @default(cuid())
+  qrCode         String     @unique
+  nickname       String?
+  speciesId      String
+  locationId     String?
+  ownerId        String?
+  parentPlantId  String?
+  statusId       String
+  originTypeId   String
+  purchasePrice  Decimal?   @db.Decimal(12, 2)
+  sellingPrice   Decimal?   @db.Decimal(12, 2)
+  purchaseDate   DateTime?
+  seedDate       DateTime?
+  potSize        String?
+  memo           String?
+  soldAt         DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  species     Species        @relation(fields: [speciesId], references: [id])
+  location    PlantLocation? @relation(fields: [locationId], references: [id])
+  owner       User?          @relation("PlantOwner", fields: [ownerId], references: [id])
+  parentPlant Plant?         @relation("PlantLineage", fields: [parentPlantId], references: [id])
+  childPlants Plant[]        @relation("PlantLineage")
+  status      CommonCode     @relation("PlantStatus", fields: [statusId], references: [id])
+  originType  CommonCode     @relation("OriginType", fields: [originTypeId], references: [id])
+  images      PlantImage[]
+  histories   PlantHistory[]
+  cartItems   Cart[]
+
+  @@index([speciesId])
+  @@index([locationId])
+  @@index([ownerId])
+  @@index([parentPlantId])
+  @@index([statusId])
+  @@index([originTypeId])
+  @@map("plants")
+}
+
+// ─────────────────────────────────────────────
+// originType은 CommonCode(groupCode: ORIGIN_TYPE)로 관리한다.
+// 기존 enum(PURCHASE, SEEDLING, CUTTING, OFFSET, GRAFT)에서 전환.
+// 향후 교환(EXCHANGE), 나눔(DONATION), 수입(IMPORT), 채종(SEED_COLLECTED)
+// 등을 코드 추가만으로 확장 가능하다.
+// ─────────────────────────────────────────────
+
+// ─────────────────────────────────────────────
+// 개체 이미지
+// ─────────────────────────────────────────────
+model PlantImage {
+  id        String    @id @default(cuid())
+  plantId   String
+  url       String
+  imageType ImageType @default(OTHER)
+  caption   String?
+  sortOrder Int       @default(0)
+  isPrimary Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  plant     Plant          @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  histories PlantHistory[] @relation("HistoryImage")
+
+  @@index([plantId])
+  @@index([plantId, imageType])
+  @@map("plant_images")
+}
+
+enum ImageType {
+  PRIMARY
+  FLOWER
+  SALE
+  OTHER
+}
+
+// ─────────────────────────────────────────────
+// 개체 이력 — 분갈이, 판매, 위치변경, 개화, 메모 등
+// historyType → CommonCode (groupCode: HISTORY_TYPE)
+// imageId: 분갈이 사진, 꽃 사진, 판매 사진 등 이력과 이미지를 연결
+// ─────────────────────────────────────────────
+model PlantHistory {
+  id             String   @id @default(cuid())
+  plantId        String
+  historyTypeId  String
+  performedById  String?
+  performedAt    DateTime @default(now())
+  title          String?
+  description    String?
+  amount         Decimal? @db.Decimal(12, 2)
+  fromLocationId String?
+  toLocationId   String?
+  imageId        String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  plant        Plant          @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  historyType  CommonCode     @relation("HistoryType", fields: [historyTypeId], references: [id])
+  performedBy  User?          @relation("HistoryPerformer", fields: [performedById], references: [id])
+  fromLocation PlantLocation? @relation("HistoryFromLocation", fields: [fromLocationId], references: [id])
+  toLocation   PlantLocation? @relation("HistoryToLocation", fields: [toLocationId], references: [id])
+  image        PlantImage?    @relation("HistoryImage", fields: [imageId], references: [id], onDelete: SetNull)
+
+  @@index([plantId, performedAt])
+  @@index([historyTypeId])
+  @@index([performedById])
+  @@index([imageId])
+  @@map("plant_histories")
+}
+
+// ─────────────────────────────────────────────
+// 장바구니
+// ─────────────────────────────────────────────
+model Cart {
+  id        String   @id @default(cuid())
+  userId    String
+  plantId   String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plant Plant @relation(fields: [plantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, plantId])
+  @@index([userId])
+  @@map("carts")
+}
