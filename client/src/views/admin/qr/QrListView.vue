@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useQrStore } from '@/stores/qr';
 import PageHeader from '@/components/common/PageHeader.vue';
+import FilterBar from '@/components/common/FilterBar.vue';
 import StatusBadge from '@/components/common/StatusBadge.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
@@ -10,6 +11,8 @@ import { placeholderQr } from '@/utils/placeholder';
 
 const store = useQrStore();
 
+const localSearch = ref('');
+
 const selectedQrImage = computed(() => {
   const code = store.preview?.qrCode ?? store.selected?.qrCode;
   return code ? placeholderQr(code, 240) : '';
@@ -17,27 +20,32 @@ const selectedQrImage = computed(() => {
 
 onMounted(() => {
   store.fetchQrList();
+  localSearch.value = store.searchQuery;
 });
+
+function applySearch() {
+  store.setSearch(localSearch.value.trim());
+}
 </script>
 
 <template>
   <div>
     <PageHeader title="QR관리" subtitle="개체별 QR코드를 조회하고 라벨을 미리봅니다.">
       <template #actions>
-        <BaseButton variant="outline" to="/admin/plants/new">+ 개체 등록 (QR 자동발급)</BaseButton>
+        <BaseButton variant="outline" to="/admin/plants/new">개체 등록 (QR 자동발급)</BaseButton>
         <BaseButton variant="primary" disabled title="라벨 일괄 인쇄 API는 아직 구현되지 않았습니다">라벨 일괄 인쇄</BaseButton>
       </template>
     </PageHeader>
 
-    <div class="filter-bar">
-      <input
-        type="text"
-        placeholder="QR코드, 품종명, 닉네임 검색"
-        :value="store.searchQuery"
-        @input="store.setSearch(($event.target as HTMLInputElement).value)"
-      />
-      <span class="filter-total">총 {{ store.filtered.length }}건</span>
-    </div>
+    <FilterBar
+      v-model:search-query="localSearch"
+      search-placeholder="QR코드, 품종명, 닉네임 검색"
+      @search="applySearch"
+    >
+      <template #meta>
+        <span>총 {{ store.filtered.length }}건</span>
+      </template>
+    </FilterBar>
 
     <div v-if="store.listLoading" class="panel">
       <EmptyState message="QR 목록을 불러오는 중입니다..." icon="⏳" />
@@ -111,12 +119,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.filter-total {
-  margin-left: auto;
-  font-size: 0.82rem;
-  color: var(--color-text-muted);
-}
-
 .table-empty-actions {
   display: flex;
   justify-content: center;

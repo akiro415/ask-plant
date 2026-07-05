@@ -1,18 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import BaseButton from '@/components/base/BaseButton.vue';
 import { useQrStore } from '@/stores/qr';
 import { useAuthStore } from '@/stores/auth';
 import StatusBadge from '@/components/common/StatusBadge.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
-import DetailEditToolbar from '@/components/common/DetailEditToolbar.vue';
+import DetailPageActions from '@/components/common/DetailPageActions.vue';
 import PlantFormModal from '@/views/admin/plants/PlantFormModal.vue';
 import { usePlantStore } from '@/stores/plant';
 import { placeholderQr } from '@/utils/placeholder';
 
 const route = useRoute();
-const router = useRouter();
 const qrStore = useQrStore();
 const plantStore = usePlantStore();
 const auth = useAuthStore();
@@ -49,10 +48,13 @@ watch(() => route.params.plantId, load);
         <h1>QR 상세</h1>
         <p class="page-header-subtitle"><code>{{ qrStore.preview.qrCode }}</code> · {{ qrStore.preview.speciesDisplayName }}</p>
       </div>
-      <div class="detail-actions">
-        <DetailEditToolbar v-if="canManage && plantStore.currentPlant" :edit-mode="false" @edit="showPlantForm = true" />
-        <BaseButton variant="outline" size="sm" @click="router.push('/admin/qr')">← QR 목록</BaseButton>
-      </div>
+      <DetailPageActions
+        v-if="canManage && plantStore.currentPlant"
+        list-to="/admin/qr"
+        :can-delete="false"
+        @edit="showPlantForm = true"
+      />
+      <DetailPageActions v-else list-to="/admin/qr" :can-edit="false" :can-delete="false" />
     </div>
 
     <div class="qr-detail-grid">
@@ -86,12 +88,6 @@ watch(() => route.params.plantId, load);
 </template>
 
 <style scoped>
-.detail-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 .qr-detail-grid {
   display: grid;
   grid-template-columns: 280px 1fr;

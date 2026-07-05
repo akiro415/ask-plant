@@ -124,14 +124,22 @@ export const plantRepository = {
         locationId: data.locationId ?? undefined,
         parentPlantId: data.parentPlantId ?? undefined,
         purchasePrice: data.purchasePrice ?? undefined,
-        sellingPrice: data.sellingPrice ?? undefined,
+        sellingPrice: data.sellingPrice ?? data.totalSellingPrice ?? undefined,
+        flowerColor: data.flowerColor ?? undefined,
+        purchaseHeadCount: data.purchaseHeadCount ?? undefined,
+        purchaseUnitPrice: data.purchaseUnitPrice ?? undefined,
+        currentHeadCount: data.currentHeadCount ?? undefined,
+        unitSellingPrice: data.unitSellingPrice ?? undefined,
+        totalSellingPrice: data.totalSellingPrice ?? undefined,
+        purchaseVendor: data.purchaseVendor ?? undefined,
+        purchaseFarm: data.purchaseFarm ?? undefined,
         purchaseDate: data.purchaseDate ? new Date(data.purchaseDate) : undefined,
         seedDate: data.seedDate ? new Date(data.seedDate) : undefined,
         potSize: data.potSize ?? undefined,
         memo: data.memo ?? undefined,
-      },
+      } as Prisma.PlantUncheckedCreateInput,
       include: detailInclude,
-    });
+    }) as Promise<PlantDetailRow>;
   },
 
   async update(id: string, data: UpdatePlantInput): Promise<PlantDetailRow> {
@@ -145,16 +153,29 @@ export const plantRepository = {
         parentPlantId: data.parentPlantId === undefined ? undefined : data.parentPlantId,
         ownerId: data.ownerId === undefined ? undefined : data.ownerId,
         purchasePrice: data.purchasePrice === undefined ? undefined : data.purchasePrice,
-        sellingPrice: data.sellingPrice === undefined ? undefined : data.sellingPrice,
+        sellingPrice:
+          data.sellingPrice === undefined
+            ? data.totalSellingPrice === undefined
+              ? undefined
+              : data.totalSellingPrice
+            : data.sellingPrice,
+        flowerColor: data.flowerColor === undefined ? undefined : data.flowerColor,
+        purchaseHeadCount: data.purchaseHeadCount === undefined ? undefined : data.purchaseHeadCount,
+        purchaseUnitPrice: data.purchaseUnitPrice === undefined ? undefined : data.purchaseUnitPrice,
+        currentHeadCount: data.currentHeadCount === undefined ? undefined : data.currentHeadCount,
+        unitSellingPrice: data.unitSellingPrice === undefined ? undefined : data.unitSellingPrice,
+        totalSellingPrice: data.totalSellingPrice === undefined ? undefined : data.totalSellingPrice,
+        purchaseVendor: data.purchaseVendor === undefined ? undefined : data.purchaseVendor,
+        purchaseFarm: data.purchaseFarm === undefined ? undefined : data.purchaseFarm,
         purchaseDate:
           data.purchaseDate === undefined ? undefined : data.purchaseDate ? new Date(data.purchaseDate) : null,
         seedDate: data.seedDate === undefined ? undefined : data.seedDate ? new Date(data.seedDate) : null,
         potSize: data.potSize === undefined ? undefined : data.potSize,
         memo: data.memo === undefined ? undefined : data.memo,
         soldAt: data.soldAt === undefined ? undefined : data.soldAt ? new Date(data.soldAt) : null,
-      },
+      } as Prisma.PlantUncheckedUpdateInput,
       include: detailInclude,
-    });
+    }) as Promise<PlantDetailRow>;
   },
 
   /** Soft Delete — 실제 row는 삭제하지 않고 deletedAt만 기록한다 (docs/RULES.md). */

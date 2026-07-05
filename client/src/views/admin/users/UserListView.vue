@@ -7,9 +7,11 @@ import type { AdminUser, UserRole } from '@/types/user';
 import { USER_ROLE_LABEL } from '@/types/user';
 import PageHeader from '@/components/common/PageHeader.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
+import FilterBar from '@/components/common/FilterBar.vue';
 import UserFormModal from './UserFormModal.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
 import BaseTable from '@/components/base/BaseTable.vue';
+import TableRowActions from '@/components/common/TableRowActions.vue';
 import { formatDate } from '@/utils/format';
 
 const store = useUserStore();
@@ -24,10 +26,25 @@ const ROLE_TONE: Record<string, string> = {
 
 const editingUser = ref<AdminUser | null>(null);
 const showForm = ref(false);
+const localSearch = ref('');
 
 onMounted(() => {
   store.fetchUserList();
+  localSearch.value = store.searchQuery;
 });
+
+function applySearch() {
+  store.setSearch(localSearch.value.trim());
+}
+
+async function applyActiveFilter(value: string) {
+  store.setActiveFilter(value as 'all' | 'active' | 'inactive');
+  await store.fetchUserList();
+}
+
+function applyRoleFilter(value: string) {
+  store.setRoleFilter(value as UserRole | '');
+}
 
 function openEdit(user: AdminUser, event?: Event) {
   event?.stopPropagation();
@@ -44,20 +61,13 @@ function goDetail(user: AdminUser) {
   router.push(`/admin/users/${user.id}`);
 }
 
-async function applyActiveFilter(value: string) {
-  store.setActiveFilter(value as 'all' | 'active' | 'inactive');
-  await store.fetchUserList();
-}
-
-async function applyRoleFilter(value: string) {
-  store.setRoleFilter(value as UserRole | '');
-}
-
-async function handleDelete(user: AdminUser, event: Event) {
+async function handleToggle(user: AdminUser, event: Event) {
   event.stopPropagation();
   if (user.id === auth.user?.id) return;
-  if (!confirm(`'${user.name}' 사용자를 비활성화하시겠습니까?`)) return;
-  await store.deleteUser(user.id);
+  const nextActive = !user.isActive;
+  const label = nextActive ? '활성화' : '비활성화';
+  if (!confirm(`'${user.name}' 사용자를 ${label}하시겠습니까?`)) return;
+  await store.toggleUserActive(user.id, nextActive);
 }
 </script>
 
@@ -65,32 +75,30 @@ async function handleDelete(user: AdminUser, event: Event) {
   <div>
     <PageHeader title="사용자관리" subtitle="관리자, 직원, 고객 계정을 관리합니다.">
       <template #actions>
-        <BaseButton variant="primary" disabled title="사용자 생성 API는 아직 구현되지 않았습니다">+ 사용자 추가</BaseButton>
+        <BaseButton variant="primary" disabled title="사용자 등록 API는 아직 구현되지 않았습니다">사용자 등록</BaseButton>
       </template>
     </PageHeader>
 
-    <div class="filter-bar">
-      <input
-        type="text"
-        placeholder="이름, 이메일 검색"
-        :value="store.searchQuery"
-        @input="store.setSearch(($event.target as HTMLInputElement).value)"
-      />
-      <select :value="store.roleFilter" @change="applyRoleFilter(($event.target as HTMLSelectElement).value)">
-        <option value="">전체 역할</option>
-        <option value="ADMIN">관리자</option>
-        <option value="STAFF">직원</option>
-        <option value="CUSTOMER">고객</option>
-      </select>
-      <select :value="store.activeFilter" @change="applyActiveFilter(($event.target as HTMLSelectElement).value)">
-        <option value="all">전체 상태</option>
-        <option value="active">활성만</option>
-        <option value="inactive">비활성만</option>
-      </select>
-      <span class="filter-total">총 {{ store.filtered.length }}명</span>
-    </div>
+    <FilterBar v-model:search-query="localSearch" search-placeholder="이름, 이메일 검색" @search="applySearch">
+      <template #filters>
+        <select :value="store.roleFilter" @change="applyRoleFilter(($event.target as HTMLSelectElement).value)">
+          <option value="">전체 역할</option>
+          <option value="ADMIN">관리자</option>
+          <option value="STAFF">직원</option>
+          <option value="CUSTOMER">고객</option>
+        </select>
+        <select :value="store.activeFilter" @change="applyActiveFilter(($event.target as HTMLSelectElement).value)">
+          <option value="all">전체 상태</option>
+          <option value="active">활성</option>
+          <option value="inactive">비활성</option>
+        </select>
+      </template>
+      <template #meta>
+        <span>총 {{ store.filtered.length }}명</span>
+      </template>
+    </FilterBar>
 
-    <p v-if="store.deleteError" class="form-error form-error--block">{{ store.deleteError }}</p>
+    <p v-if="store.toggleError" class="form-error form-error--block">{{ store.toggleError }}</p>
 
     <div class="panel">
       <div v-if="store.listLoading" class="table-empty">
@@ -126,19 +134,13 @@ async function handleDelete(user: AdminUser, event: Event) {
             </td>
             <td>{{ formatDate(u.createdAt) }}</td>
             <td class="col-actions" @click.stop>
-              <div class="col-actions-inner">
-                <BaseButton variant="outline" size="sm" @click="openEdit(u, $event)">수정</BaseButton>
-                <BaseButton
-                  v-if="u.id !== auth.user?.id && u.isActive"
-                  variant="outline"
-                  size="sm"
-                  destructive
-                  :disabled="store.deleteLoadingId === u.id"
-                  @click="handleDelete(u, $event)"
-                >
-                  {{ store.deleteLoadingId === u.id ? '...' : '비활성' }}
-                </BaseButton>
-              </div>
+              <TableRowActions
+                :show-delete="u.id !== auth.user?.id"
+                :delete-loading="store.toggleLoadingId === u.id"
+                :delete-label="u.isActive ? '비활성화' : '활성화'"
+                @edit="openEdit(u, $event)"
+                @delete="handleToggle(u, $event)"
+              />
             </td>
           </tr>
         </tbody>
@@ -150,20 +152,13 @@ async function handleDelete(user: AdminUser, event: Event) {
 </template>
 
 <style scoped>
-.filter-total {
-  margin-left: auto;
-  font-size: 0.82rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-}
-
 .sortable {
   cursor: pointer;
   user-select: none;
 }
 
 .table-empty {
-  padding: 1rem 0;
+  padding: var(--space-4) 0;
 }
 
 .table-empty-actions {

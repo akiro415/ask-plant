@@ -5,7 +5,6 @@ import {
   fetchUsers,
   fetchUserById as fetchUserByIdApi,
   updateUser as updateUserApi,
-  deleteUser as deleteUserApi,
   type UpdateUserPayload,
 } from '@/api/user.api';
 import { extractErrorMessage } from '@/api/http';
@@ -31,8 +30,8 @@ export const useUserStore = defineStore('user', () => {
 
   const formLoading = ref(false);
   const formError = ref<string | null>(null);
-  const deleteLoadingId = ref<string | null>(null);
-  const deleteError = ref<string | null>(null);
+  const toggleLoadingId = ref<string | null>(null);
+  const toggleError = ref<string | null>(null);
 
   const filtered = computed(() => {
     let list = users.value.filter((u) => {
@@ -127,22 +126,20 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  /** DELETE /api/v1/users/:id */
-  async function deleteUser(id: string): Promise<boolean> {
-    deleteLoadingId.value = id;
-    deleteError.value = null;
+  /** 활성/비활성 토글 — PUT isActive */
+  async function toggleUserActive(id: string, nextActive: boolean): Promise<boolean> {
+    toggleLoadingId.value = id;
+    toggleError.value = null;
     try {
-      await deleteUserApi(id);
-      if (currentUser.value?.id === id) {
-        currentUser.value = { ...currentUser.value, isActive: false };
-      }
+      const updated = await updateUserApi(id, { isActive: nextActive });
+      if (currentUser.value?.id === id) currentUser.value = updated;
       await fetchUserList();
       return true;
     } catch (error) {
-      deleteError.value = extractErrorMessage(error, '사용자 삭제에 실패했습니다');
+      toggleError.value = extractErrorMessage(error, nextActive ? '활성화에 실패했습니다' : '비활성화에 실패했습니다');
       return false;
     } finally {
-      deleteLoadingId.value = null;
+      toggleLoadingId.value = null;
     }
   }
 
@@ -161,8 +158,8 @@ export const useUserStore = defineStore('user', () => {
     sortOrder,
     formLoading,
     formError,
-    deleteLoadingId,
-    deleteError,
+    toggleLoadingId,
+    toggleError,
     setSearch,
     setRoleFilter,
     setIncludeInactive,
@@ -172,6 +169,6 @@ export const useUserStore = defineStore('user', () => {
     fetchUserList,
     fetchUserById,
     updateUser,
-    deleteUser,
+    toggleUserActive,
   };
 });

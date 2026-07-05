@@ -6,7 +6,7 @@ import { usePlantStore } from '@/stores/plant';
 import { useUiStore } from '@/stores/ui';
 import { useAuthStore } from '@/stores/auth';
 import EmptyState from '@/components/common/EmptyState.vue';
-import DetailEditToolbar from '@/components/common/DetailEditToolbar.vue';
+import DetailPageActions from '@/components/common/DetailPageActions.vue';
 import LocationFormModal from './LocationFormModal.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
 import BaseTable from '@/components/base/BaseTable.vue';
@@ -52,10 +52,13 @@ watch(location, sync);
         <h1>{{ location.name }}</h1>
         <p class="page-header-subtitle"><code>{{ location.code }}</code> · {{ location.type?.name ?? '-' }}</p>
       </div>
-      <div class="detail-actions">
-        <DetailEditToolbar v-if="canManage" :edit-mode="false" @edit="showForm = true" />
-        <BaseButton variant="outline" size="sm" @click="router.push('/admin/locations')">← 목록으로</BaseButton>
-      </div>
+      <DetailPageActions
+        v-if="canManage"
+        list-to="/admin/locations"
+        :can-delete="false"
+        @edit="showForm = true"
+      />
+      <DetailPageActions v-else list-to="/admin/locations" :can-edit="false" :can-delete="false" />
     </div>
 
     <section class="panel info-card">
@@ -85,12 +88,6 @@ watch(location, sync);
 </template>
 
 <style scoped>
-.detail-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 .info-card-title {
   font-size: 0.95rem;
   font-weight: 700;

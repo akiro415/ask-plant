@@ -3,6 +3,7 @@ import { z } from 'zod';
 const nullableString = () => z.string().trim().min(1).nullable().optional();
 const nullableIsoDate = () => z.string().datetime({ message: '올바른 ISO 8601 날짜 형식이 아닙니다' }).nullable().optional();
 const nullablePrice = () => z.number().nonnegative('0 이상의 값이어야 합니다').nullable().optional();
+const nullableInt = () => z.number().int().nonnegative('0 이상의 정수여야 합니다').nullable().optional();
 
 /**
  * 개체 생성 요청 스키마 (docs/api-specification.md의 CreatePlant)
@@ -17,6 +18,14 @@ export const createPlantSchema = z.object({
   parentPlantId: nullableString(),
   purchasePrice: nullablePrice(),
   sellingPrice: nullablePrice(),
+  flowerColor: nullableString(),
+  purchaseHeadCount: nullableInt(),
+  purchaseUnitPrice: nullablePrice(),
+  currentHeadCount: nullableInt(),
+  unitSellingPrice: nullablePrice(),
+  totalSellingPrice: nullablePrice(),
+  purchaseVendor: nullableString(),
+  purchaseFarm: nullableString(),
   purchaseDate: nullableIsoDate(),
   seedDate: nullableIsoDate(),
   potSize: nullableString(),

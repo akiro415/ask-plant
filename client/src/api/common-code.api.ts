@@ -5,13 +5,49 @@ interface CommonCodeListResponse {
   data: CommonCode[];
 }
 
+interface CommonCodeItemResponse {
+  data: CommonCode;
+}
+
+export interface CreateCommonCodePayload {
+  groupCode: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
+export type UpdateCommonCodePayload = Partial<CreateCommonCodePayload>;
+
 /**
- * GET /api/v1/common-codes?groupCode=... — select 옵션은 항상 id를 value로 사용한다.
- * groupCode를 생략하면 전체 그룹의 코드를 한 번에 조회한다(공통코드 관리 화면에서 사용).
+ * GET /api/v1/common-codes?groupCode=...&includeInactive=...
+ * select 옵션은 항상 id를 value로 사용한다.
  */
-export async function fetchCommonCodes(groupCode?: string): Promise<CommonCode[]> {
+export async function fetchCommonCodes(groupCode?: string, includeInactive = false): Promise<CommonCode[]> {
+  const params: Record<string, string | boolean> = {};
+  if (groupCode) params.groupCode = groupCode;
+  if (includeInactive) params.includeInactive = true;
   const { data } = await httpClient.get<CommonCodeListResponse>('/common-codes', {
-    params: groupCode ? { groupCode } : undefined,
+    params: Object.keys(params).length > 0 ? params : undefined,
   });
+  return data.data;
+}
+
+/** POST /api/v1/common-codes — ADMIN/STAFF 전용 */
+export async function createCommonCode(payload: CreateCommonCodePayload): Promise<CommonCode> {
+  const { data } = await httpClient.post<CommonCodeItemResponse>('/common-codes', payload);
+  return data.data;
+}
+
+/** PUT /api/v1/common-codes/:id — ADMIN/STAFF 전용 */
+export async function updateCommonCode(id: string, payload: UpdateCommonCodePayload): Promise<CommonCode> {
+  const { data } = await httpClient.put<CommonCodeItemResponse>(`/common-codes/${id}`, payload);
+  return data.data;
+}
+
+/** DELETE /api/v1/common-codes/:id — ADMIN/STAFF 전용. 서버에서 isActive=false로 Soft Delete 처리한다. */
+export async function deleteCommonCode(id: string): Promise<CommonCode> {
+  const { data } = await httpClient.delete<CommonCodeItemResponse>(`/common-codes/${id}`);
   return data.data;
 }

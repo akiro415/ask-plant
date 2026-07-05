@@ -721,13 +721,21 @@ table.data-table tbody tr.clickable {
     height: 100vh;
     left: 0;
     top: 0;
+    width: var(--sidebar-width);
+    transform: translateX(-100%);
+    transition: transform var(--transition-base);
   }
 
-  .admin-sidebar:not(.mobile-open) {
-    display: none;
+  .admin-sidebar.mobile-open {
+    transform: translateX(0);
+    display: flex;
+  }
+
+  .admin-sidebar.collapsed {
+    width: var(--sidebar-width);
   }
 
   .admin-content {
-    padding: 1.1rem 1rem 2rem;
+    padding: var(--space-4) var(--space-4) var(--space-6);
   }
 }

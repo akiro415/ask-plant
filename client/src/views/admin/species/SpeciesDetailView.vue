@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/auth';
 import { TAXON_RANK_LABEL } from '@/types/species';
 import StatusBadge from '@/components/common/StatusBadge.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
-import DetailEditToolbar from '@/components/common/DetailEditToolbar.vue';
+import DetailPageActions from '@/components/common/DetailPageActions.vue';
 import SpeciesFormModal from './SpeciesFormModal.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
 import BaseTable from '@/components/base/BaseTable.vue';
@@ -51,7 +51,13 @@ watch(() => route.params.id, sync);
         <h1>{{ species.displayName }}</h1>
         <p class="page-header-subtitle">{{ species.scientificName ?? '학명 미상' }} · {{ TAXON_RANK_LABEL[species.taxonRank] }}</p>
       </div>
-      <DetailEditToolbar v-if="canManage" :edit-mode="false" @edit="showForm = true" />
+      <DetailPageActions
+        v-if="canManage"
+        list-to="/admin/species"
+        :can-delete="false"
+        @edit="showForm = true"
+      />
+      <DetailPageActions v-else list-to="/admin/species" :can-edit="false" :can-delete="false" />
     </div>
 
     <div class="species-detail-grid">

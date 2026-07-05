@@ -32,6 +32,14 @@ const form = reactive({
   seedDate: '',
   potSize: '',
   memo: '',
+  flowerColor: '',
+  purchaseHeadCount: '' as string | number,
+  purchaseUnitPrice: '' as string | number,
+  currentHeadCount: '' as string | number,
+  unitSellingPrice: '' as string | number,
+  totalSellingPrice: '' as string | number,
+  purchaseVendor: '',
+  purchaseFarm: '',
 });
 
 function syncFormFromPlant() {
@@ -40,6 +48,14 @@ function syncFormFromPlant() {
   form.sellingPrice = props.plant.sellingPrice ?? '';
   form.potSize = props.plant.potSize ?? '';
   form.memo = props.plant.memo ?? '';
+  form.flowerColor = props.plant.flowerColor ?? '';
+  form.purchaseHeadCount = props.plant.purchaseHeadCount ?? '';
+  form.purchaseUnitPrice = props.plant.purchaseUnitPrice ?? '';
+  form.currentHeadCount = props.plant.currentHeadCount ?? '';
+  form.unitSellingPrice = props.plant.unitSellingPrice ?? '';
+  form.totalSellingPrice = props.plant.totalSellingPrice ?? '';
+  form.purchaseVendor = props.plant.purchaseVendor ?? '';
+  form.purchaseFarm = props.plant.purchaseFarm ?? '';
   form.purchaseDate = props.plant.purchaseDate ? props.plant.purchaseDate.slice(0, 10) : '';
   form.seedDate = props.plant.seedDate ? props.plant.seedDate.slice(0, 10) : '';
   form.locationId = props.plant.location?.id ?? '';
@@ -100,6 +116,12 @@ function toIsoDate(value: string): string | null {
   return new Date(`${value}T00:00:00.000Z`).toISOString();
 }
 
+function toNullableInt(value: string | number): number | null {
+  if (value === '' || value === null) return null;
+  const n = Number(value);
+  return Number.isNaN(n) ? null : Math.trunc(n);
+}
+
 async function handleSubmit() {
   if (!isValid.value) return;
   const ok = await store.updatePlant(props.plant.id, {
@@ -109,6 +131,14 @@ async function handleSubmit() {
     nickname: toNullableString(form.nickname),
     purchasePrice: toNullableNumber(form.purchasePrice),
     sellingPrice: toNullableNumber(form.sellingPrice),
+    flowerColor: toNullableString(form.flowerColor),
+    purchaseHeadCount: toNullableInt(form.purchaseHeadCount),
+    purchaseUnitPrice: toNullableNumber(form.purchaseUnitPrice),
+    currentHeadCount: toNullableInt(form.currentHeadCount),
+    unitSellingPrice: toNullableNumber(form.unitSellingPrice),
+    totalSellingPrice: toNullableNumber(form.totalSellingPrice),
+    purchaseVendor: toNullableString(form.purchaseVendor),
+    purchaseFarm: toNullableString(form.purchaseFarm),
     purchaseDate: toIsoDate(form.purchaseDate),
     seedDate: toIsoDate(form.seedDate),
     potSize: toNullableString(form.potSize),
@@ -156,12 +186,44 @@ async function handleSubmit() {
           <input id="pf-nickname" v-model="form.nickname" type="text" />
         </div>
         <div class="form-field">
-          <label for="pf-purchase">구매가</label>
+          <label for="pf-flower">꽃색</label>
+          <input id="pf-flower" v-model="form.flowerColor" type="text" />
+        </div>
+        <div class="form-field">
+          <label for="pf-purchase">구매가(레거시)</label>
           <input id="pf-purchase" v-model="form.purchasePrice" type="number" min="0" step="1" />
         </div>
         <div class="form-field">
-          <label for="pf-selling">판매가</label>
+          <label for="pf-selling">판매가(레거시)</label>
           <input id="pf-selling" v-model="form.sellingPrice" type="number" min="0" step="1" />
+        </div>
+        <div class="form-field">
+          <label for="pf-purchaseHead">구입두수</label>
+          <input id="pf-purchaseHead" v-model="form.purchaseHeadCount" type="number" min="0" step="1" />
+        </div>
+        <div class="form-field">
+          <label for="pf-purchaseUnit">구입 1두 가격</label>
+          <input id="pf-purchaseUnit" v-model="form.purchaseUnitPrice" type="number" min="0" step="1" />
+        </div>
+        <div class="form-field">
+          <label for="pf-currentHead">현재 두수</label>
+          <input id="pf-currentHead" v-model="form.currentHeadCount" type="number" min="0" step="1" />
+        </div>
+        <div class="form-field">
+          <label for="pf-unitSell">두수별 판매가</label>
+          <input id="pf-unitSell" v-model="form.unitSellingPrice" type="number" min="0" step="1" />
+        </div>
+        <div class="form-field">
+          <label for="pf-totalSell">총판매가</label>
+          <input id="pf-totalSell" v-model="form.totalSellingPrice" type="number" min="0" step="1" />
+        </div>
+        <div class="form-field">
+          <label for="pf-vendor">구입업체</label>
+          <input id="pf-vendor" v-model="form.purchaseVendor" type="text" />
+        </div>
+        <div class="form-field">
+          <label for="pf-farm">구입농장</label>
+          <input id="pf-farm" v-model="form.purchaseFarm" type="text" placeholder="업체와 다를 수 있음" />
         </div>
         <div class="form-field">
           <label for="pf-purchaseDate">구매일</label>

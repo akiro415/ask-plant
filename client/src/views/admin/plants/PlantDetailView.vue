@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute, useRouter, RouterLink } from 'vue-router';
+import { useRoute, RouterLink } from 'vue-router';
 import { usePlantStore } from '@/stores/plant';
 import { useHistoryStore } from '@/stores/history';
 import { useUiStore } from '@/stores/ui';
@@ -9,7 +9,7 @@ import ImageGallery from '@/components/common/ImageGallery.vue';
 import StatusBadge from '@/components/common/StatusBadge.vue';
 import Timeline from '@/components/common/Timeline.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
-import DetailEditToolbar from '@/components/common/DetailEditToolbar.vue';
+import DetailPageActions from '@/components/common/DetailPageActions.vue';
 import HistoryFormModal from './HistoryFormModal.vue';
 import PlantFormModal from './PlantFormModal.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
@@ -18,7 +18,6 @@ import { formatCurrency, formatDate } from '@/utils/format';
 import type { PlantHistory } from '@/types/history';
 
 const route = useRoute();
-const router = useRouter();
 const store = usePlantStore();
 const historyStore = useHistoryStore();
 const ui = useUiStore();
@@ -88,8 +87,13 @@ watch(() => route.params.id, load);
       </div>
       <div class="detail-actions">
         <StatusBadge :code="plant.status.code" :label="plant.status.name" />
-        <DetailEditToolbar v-if="canManage" :edit-mode="false" @edit="showPlantForm = true" />
-        <BaseButton variant="outline" size="sm" @click="router.back()">← 목록으로</BaseButton>
+        <DetailPageActions
+          v-if="canManage"
+          list-to="/admin/plants"
+          :can-delete="false"
+          @edit="showPlantForm = true"
+        />
+        <DetailPageActions v-else list-to="/admin/plants" :can-edit="false" :can-delete="false" />
       </div>
     </div>
 
@@ -112,9 +116,15 @@ watch(() => route.params.id, load);
         </section>
 
         <section class="panel info-card">
-          <h2 class="info-card-title">가격</h2>
-          <div class="info-row"><span class="info-label">구매가</span><span class="info-value">{{ formatCurrency(plant.purchasePrice) }}</span></div>
-          <div class="info-row"><span class="info-label">판매가</span><span class="info-value price-highlight">{{ formatCurrency(plant.sellingPrice) }}</span></div>
+          <h2 class="info-card-title">가격 · 두수 · 구입처</h2>
+          <div class="info-row"><span class="info-label">꽃색</span><span class="info-value">{{ plant.flowerColor ?? '-' }}</span></div>
+          <div class="info-row"><span class="info-label">구입두수</span><span class="info-value">{{ plant.purchaseHeadCount ?? '-' }}</span></div>
+          <div class="info-row"><span class="info-label">구입 1두 가격</span><span class="info-value">{{ formatCurrency(plant.purchaseUnitPrice) }}</span></div>
+          <div class="info-row"><span class="info-label">현재 두수</span><span class="info-value">{{ plant.currentHeadCount ?? '-' }}</span></div>
+          <div class="info-row"><span class="info-label">두수별 판매가</span><span class="info-value">{{ formatCurrency(plant.unitSellingPrice) }}</span></div>
+          <div class="info-row"><span class="info-label">총판매가</span><span class="info-value price-highlight">{{ formatCurrency(plant.totalSellingPrice ?? plant.sellingPrice) }}</span></div>
+          <div class="info-row"><span class="info-label">구입업체</span><span class="info-value">{{ plant.purchaseVendor ?? '-' }}</span></div>
+          <div class="info-row"><span class="info-label">구입농장</span><span class="info-value">{{ plant.purchaseFarm ?? '-' }}</span></div>
           <div class="info-row"><span class="info-label">구매일</span><span class="info-value">{{ formatDate(plant.purchaseDate) }}</span></div>
           <div class="info-row"><span class="info-label">파종일</span><span class="info-value">{{ formatDate(plant.seedDate) }}</span></div>
         </section>
@@ -161,7 +171,7 @@ watch(() => route.params.id, load);
     <section class="panel timeline-panel">
       <div class="timeline-panel-header">
         <h2 class="info-card-title">Timeline (이력)</h2>
-        <BaseButton variant="outline" size="sm" @click="openHistoryCreate">+ 이력 추가</BaseButton>
+        <BaseButton variant="outline" size="sm" @click="openHistoryCreate">이력 등록</BaseButton>
       </div>
       <p v-if="historyStore.deleteError" class="form-error form-error--block">{{ historyStore.deleteError }}</p>
       <div v-if="historyStore.listLoading" class="timeline-loading">

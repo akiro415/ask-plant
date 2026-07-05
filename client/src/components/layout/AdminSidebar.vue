@@ -9,13 +9,23 @@ const ui = useUiStore();
 function isActive(to: string): boolean {
   return route.path === to || route.path.startsWith(`${to}/`);
 }
+
+function onNavClick() {
+  ui.closeMobileSidebar();
+}
 </script>
 
 <template>
-  <aside class="admin-sidebar" :class="{ collapsed: ui.sidebarCollapsed }">
+  <aside
+    class="admin-sidebar"
+    :class="{
+      collapsed: ui.sidebarCollapsed && !ui.sidebarMobileOpen,
+      'mobile-open': ui.sidebarMobileOpen,
+    }"
+  >
     <div class="sidebar-logo">
       <span>🌿</span>
-      <span v-if="!ui.sidebarCollapsed">Ask Plant Admin</span>
+      <span v-if="!ui.sidebarCollapsed || ui.sidebarMobileOpen">Ask Plant Admin</span>
     </div>
     <nav class="sidebar-nav">
       <RouterLink
@@ -24,11 +34,12 @@ function isActive(to: string): boolean {
         :to="item.to"
         class="sidebar-link"
         :class="{ active: isActive(item.to) }"
+        @click="onNavClick"
       >
         <span class="sidebar-icon">{{ item.icon }}</span>
-        <span v-if="!ui.sidebarCollapsed">{{ item.label }}</span>
+        <span v-if="!ui.sidebarCollapsed || ui.sidebarMobileOpen">{{ item.label }}</span>
       </RouterLink>
     </nav>
-    <div v-if="!ui.sidebarCollapsed" class="sidebar-footer">Mock UI v1.0 · API 미연결</div>
+    <div v-if="!ui.sidebarCollapsed || ui.sidebarMobileOpen" class="sidebar-footer">Ask Plant Admin v1.0</div>
   </aside>
 </template>

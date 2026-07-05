@@ -36,6 +36,14 @@ export interface PlantSummary {
   status: CommonCode;
   originType: CommonCode;
   sellingPrice: number | null;
+  flowerColor: string | null;
+  purchaseHeadCount: number | null;
+  purchaseUnitPrice: number | null;
+  currentHeadCount: number | null;
+  unitSellingPrice: number | null;
+  totalSellingPrice: number | null;
+  purchaseVendor: string | null;
+  purchaseFarm: string | null;
   primaryImageUrl: string;
   createdAt: string;
 }

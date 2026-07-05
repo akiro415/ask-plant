@@ -203,9 +203,17 @@ model Plant {
   parentPlantId  String?
   statusId       String
   originTypeId   String
-  purchasePrice  Decimal?   @db.Decimal(12, 2)
-  sellingPrice   Decimal?   @db.Decimal(12, 2)
-  purchaseDate   DateTime?
+  purchasePrice     Decimal?   @db.Decimal(12, 2)
+  sellingPrice      Decimal?   @db.Decimal(12, 2)
+  flowerColor       String?
+  purchaseHeadCount Int?
+  purchaseUnitPrice Decimal?   @db.Decimal(12, 2)
+  currentHeadCount  Int?
+  unitSellingPrice  Decimal?   @db.Decimal(12, 2)
+  totalSellingPrice Decimal?   @db.Decimal(12, 2)
+  purchaseVendor    String?
+  purchaseFarm      String?
+  purchaseDate      DateTime?
   seedDate       DateTime?
   potSize        String?
   memo           String?

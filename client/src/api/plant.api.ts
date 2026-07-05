@@ -27,6 +27,14 @@ interface ApiPlantSummary {
   status: ApiCommonCodeRef;
   originType: ApiCommonCodeRef;
   sellingPrice: number | null;
+  flowerColor: string | null;
+  purchaseHeadCount: number | null;
+  purchaseUnitPrice: number | null;
+  currentHeadCount: number | null;
+  unitSellingPrice: number | null;
+  totalSellingPrice: number | null;
+  purchaseVendor: string | null;
+  purchaseFarm: string | null;
   primaryImageUrl: string | null;
   createdAt: string;
 }
@@ -85,6 +93,14 @@ export interface CreatePlantPayload {
   locationId?: string | null;
   purchasePrice?: number | null;
   sellingPrice?: number | null;
+  flowerColor?: string | null;
+  purchaseHeadCount?: number | null;
+  purchaseUnitPrice?: number | null;
+  currentHeadCount?: number | null;
+  unitSellingPrice?: number | null;
+  totalSellingPrice?: number | null;
+  purchaseVendor?: string | null;
+  purchaseFarm?: string | null;
   purchaseDate?: string | null;
   seedDate?: string | null;
   potSize?: string | null;
@@ -117,6 +133,14 @@ function toSummary(dto: ApiPlantSummary): PlantSummary {
     status: toCommonCode(dto.status, 'PLANT_STATUS'),
     originType: toCommonCode(dto.originType, 'ORIGIN_TYPE'),
     sellingPrice: dto.sellingPrice,
+    flowerColor: dto.flowerColor,
+    purchaseHeadCount: dto.purchaseHeadCount,
+    purchaseUnitPrice: dto.purchaseUnitPrice,
+    currentHeadCount: dto.currentHeadCount,
+    unitSellingPrice: dto.unitSellingPrice,
+    totalSellingPrice: dto.totalSellingPrice,
+    purchaseVendor: dto.purchaseVendor,
+    purchaseFarm: dto.purchaseFarm,
     primaryImageUrl: dto.primaryImageUrl ?? '',
     createdAt: dto.createdAt,
   };

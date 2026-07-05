@@ -24,6 +24,14 @@ export interface PlantSummaryDto {
   status: CommonCodeDto;
   originType: CommonCodeDto;
   sellingPrice: number | null;
+  flowerColor: string | null;
+  purchaseHeadCount: number | null;
+  purchaseUnitPrice: number | null;
+  currentHeadCount: number | null;
+  unitSellingPrice: number | null;
+  totalSellingPrice: number | null;
+  purchaseVendor: string | null;
+  purchaseFarm: string | null;
   primaryImageUrl: string | null;
   createdAt: Date;
 }
@@ -60,6 +68,37 @@ function toDecimalNumber(value: unknown): number | null {
   return Number(value);
 }
 
+/** Prisma client 재생성 전까지 commerce 필드 접근용 (schema.prisma 반영 후 prisma generate 필요) */
+interface PlantCommerceFields {
+  flowerColor: string | null;
+  purchaseHeadCount: number | null;
+  purchaseUnitPrice: unknown;
+  currentHeadCount: number | null;
+  unitSellingPrice: unknown;
+  totalSellingPrice: unknown;
+  purchaseVendor: string | null;
+  purchaseFarm: string | null;
+  sellingPrice: unknown;
+}
+
+function asCommerceRow(row: PlantListRow | PlantDetailRow): PlantCommerceFields {
+  return row as PlantListRow & PlantCommerceFields;
+}
+
+function mapCommerceFields(row: PlantListRow | PlantDetailRow) {
+  const commerce = asCommerceRow(row);
+  return {
+    flowerColor: commerce.flowerColor,
+    purchaseHeadCount: commerce.purchaseHeadCount,
+    purchaseUnitPrice: toDecimalNumber(commerce.purchaseUnitPrice),
+    currentHeadCount: commerce.currentHeadCount,
+    unitSellingPrice: toDecimalNumber(commerce.unitSellingPrice),
+    totalSellingPrice: toDecimalNumber(commerce.totalSellingPrice ?? commerce.sellingPrice),
+    purchaseVendor: commerce.purchaseVendor,
+    purchaseFarm: commerce.purchaseFarm,
+  };
+}
+
 function toSummaryDto(row: PlantListRow): PlantSummaryDto {
   return {
     id: row.id,
@@ -75,7 +114,8 @@ function toSummaryDto(row: PlantListRow): PlantSummaryDto {
     location: row.location ? { id: row.location.id, code: row.location.code, name: row.location.name } : null,
     status: { code: row.status.code, name: row.status.name },
     originType: { code: row.originType.code, name: row.originType.name },
-    sellingPrice: toDecimalNumber(row.sellingPrice),
+    sellingPrice: toDecimalNumber(asCommerceRow(row).sellingPrice ?? asCommerceRow(row).totalSellingPrice),
+    ...mapCommerceFields(row),
     primaryImageUrl: row.images[0]?.url ?? null,
     createdAt: row.createdAt,
   };
@@ -98,7 +138,8 @@ function toDetailDto(row: PlantDetailRow): PlantDetailDto {
     location: row.location ? { id: row.location.id, code: row.location.code, name: row.location.name } : null,
     status: { code: row.status.code, name: row.status.name },
     originType: { code: row.originType.code, name: row.originType.name },
-    sellingPrice: toDecimalNumber(row.sellingPrice),
+    sellingPrice: toDecimalNumber(asCommerceRow(row).sellingPrice ?? asCommerceRow(row).totalSellingPrice),
+    ...mapCommerceFields(row),
     primaryImageUrl: primaryImage?.url ?? null,
     createdAt: row.createdAt,
     purchasePrice: toDecimalNumber(row.purchasePrice),
