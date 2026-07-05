@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import type { ImageType } from '@/types/image';
-import { fetchImages, createPlantImage as createPlantImageApi, deleteImage as deleteImageApi, type ImageApiRow, type CreateImagePayload } from '@/api/image.api';
+import { fetchImages, createPlantImage as createPlantImageApi, updateImage as updateImageApi, deleteImage as deleteImageApi, type ImageApiRow, type CreateImagePayload, type UpdateImagePayload } from '@/api/image.api';
 import { extractErrorMessage } from '@/api/http';
 
 export const usePhotoStore = defineStore('photo', () => {
@@ -60,6 +60,22 @@ export const usePhotoStore = defineStore('photo', () => {
     }
   }
 
+  /** PUT /api/v1/images/:id */
+  async function updatePhoto(id: string, payload: UpdateImagePayload): Promise<boolean> {
+    formLoading.value = true;
+    formError.value = null;
+    try {
+      await updateImageApi(id, payload);
+      await fetchPhotoList();
+      return true;
+    } catch (error) {
+      formError.value = extractErrorMessage(error, '사진 수정에 실패했습니다');
+      return false;
+    } finally {
+      formLoading.value = false;
+    }
+  }
+
   /** DELETE /api/v1/images/:id */
   async function deletePhoto(id: string): Promise<boolean> {
     deleteLoadingId.value = id;
@@ -76,5 +92,5 @@ export const usePhotoStore = defineStore('photo', () => {
     }
   }
 
-  return { rawRows, listLoading, listError, filtered, typeFilter, formLoading, formError, deleteLoadingId, deleteError, setTypeFilter, plantDisplayName, fetchPhotoList, createPhoto, deletePhoto };
+  return { rawRows, listLoading, listError, filtered, typeFilter, formLoading, formError, deleteLoadingId, deleteError, setTypeFilter, plantDisplayName, fetchPhotoList, createPhoto, updatePhoto, deletePhoto };
 });

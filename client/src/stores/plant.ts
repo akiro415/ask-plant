@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import type { PlantDetail, PlantSummary } from '@/types/plant';
-import { plantApi, type CreatePlantPayload } from '@/api/plant.api';
+import { plantApi, type CreatePlantPayload, type UpdatePlantPayload } from '@/api/plant.api';
 import { fetchSpeciesOptions, type SpeciesOption } from '@/api/species.api';
 import { fetchCommonCodes } from '@/api/common-code.api';
 import type { CommonCode } from '@/types/common';
@@ -19,6 +19,9 @@ export const usePlantStore = defineStore('plant', () => {
 
   const createLoading = ref(false);
   const createError = ref<string | null>(null);
+
+  const updateLoading = ref(false);
+  const updateError = ref<string | null>(null);
 
   const searchQuery = ref('');
   const statusFilter = ref<string>('');
@@ -144,7 +147,6 @@ export const usePlantStore = defineStore('plant', () => {
     createError.value = null;
     try {
       const created = await plantApi.create(payload);
-      // 목록 캐시에도 반영해 등록 직후 목록 화면에서 바로 보이도록 한다.
       plants.value = [created, ...plants.value];
       return created;
     } catch (error) {
@@ -152,6 +154,23 @@ export const usePlantStore = defineStore('plant', () => {
       return null;
     } finally {
       createLoading.value = false;
+    }
+  }
+
+  /** PUT /api/v1/plants/:id */
+  async function updatePlant(id: string, payload: UpdatePlantPayload): Promise<boolean> {
+    updateLoading.value = true;
+    updateError.value = null;
+    try {
+      const updated = await plantApi.update(id, payload);
+      currentPlant.value = updated;
+      plants.value = plants.value.map((p) => (p.id === id ? { ...p, ...updated } : p));
+      return true;
+    } catch (error) {
+      updateError.value = extractErrorMessage(error, '개체 수정에 실패했습니다');
+      return false;
+    } finally {
+      updateLoading.value = false;
     }
   }
 
@@ -169,6 +188,8 @@ export const usePlantStore = defineStore('plant', () => {
     detailError,
     createLoading,
     createError,
+    updateLoading,
+    updateError,
     searchQuery,
     statusFilter,
     categoryFilter,
@@ -189,6 +210,7 @@ export const usePlantStore = defineStore('plant', () => {
     ensureFilterOptionsLoaded,
     fetchPlantById,
     createPlant,
+    updatePlant,
     getChildren,
   };
 });

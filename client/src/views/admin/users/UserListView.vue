@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
 import { useAuthStore } from '@/stores/auth';
 import type { AdminUser, UserRole } from '@/types/user';
@@ -11,6 +12,7 @@ import { formatDate } from '@/utils/format';
 
 const store = useUserStore();
 const auth = useAuthStore();
+const router = useRouter();
 
 const ROLE_TONE: Record<string, string> = {
   ADMIN: 'badge-red',
@@ -25,7 +27,8 @@ onMounted(() => {
   store.fetchUserList();
 });
 
-function openEdit(user: AdminUser) {
+function openEdit(user: AdminUser, event?: Event) {
+  event?.stopPropagation();
   editingUser.value = user;
   showForm.value = true;
 }
@@ -35,19 +38,24 @@ function closeForm() {
   editingUser.value = null;
 }
 
-function handleSaved() {
-  closeForm();
+function goDetail(user: AdminUser) {
+  router.push(`/admin/users/${user.id}`);
 }
 
-async function handleDelete(user: AdminUser) {
+async function applyActiveFilter(value: string) {
+  store.setActiveFilter(value as 'all' | 'active' | 'inactive');
+  await store.fetchUserList();
+}
+
+async function applyRoleFilter(value: string) {
+  store.setRoleFilter(value as UserRole | '');
+}
+
+async function handleDelete(user: AdminUser, event: Event) {
+  event.stopPropagation();
   if (user.id === auth.user?.id) return;
   if (!confirm(`'${user.name}' 사용자를 비활성화하시겠습니까?`)) return;
   await store.deleteUser(user.id);
-}
-
-async function toggleIncludeInactive() {
-  store.setIncludeInactive(!store.includeInactive);
-  await store.fetchUserList();
 }
 </script>
 
@@ -62,20 +70,21 @@ async function toggleIncludeInactive() {
     <div class="filter-bar">
       <input
         type="text"
-        placeholder="이름, 이메일, 연락처 검색"
+        placeholder="이름, 이메일 검색"
         :value="store.searchQuery"
         @input="store.setSearch(($event.target as HTMLInputElement).value)"
       />
-      <select :value="store.roleFilter" @change="store.setRoleFilter(($event.target as HTMLSelectElement).value as UserRole | '')">
+      <select :value="store.roleFilter" @change="applyRoleFilter(($event.target as HTMLSelectElement).value)">
         <option value="">전체 역할</option>
         <option value="ADMIN">관리자</option>
         <option value="STAFF">직원</option>
         <option value="CUSTOMER">고객</option>
       </select>
-      <label class="filter-checkbox">
-        <input type="checkbox" :checked="store.includeInactive" @change="toggleIncludeInactive" />
-        비활성 포함
-      </label>
+      <select :value="store.activeFilter" @change="applyActiveFilter(($event.target as HTMLSelectElement).value)">
+        <option value="all">전체 상태</option>
+        <option value="active">활성만</option>
+        <option value="inactive">비활성만</option>
+      </select>
       <span class="filter-total">총 {{ store.filtered.length }}명</span>
     </div>
 
@@ -98,33 +107,33 @@ async function toggleIncludeInactive() {
             <tr>
               <th>이름</th>
               <th>이메일</th>
-              <th>연락처</th>
               <th>역할</th>
               <th>상태</th>
-              <th>가입일</th>
-              <th>관리</th>
+              <th class="sortable" @click="store.toggleSortOrder()">
+                가입일 {{ store.sortOrder === 'desc' ? '↓' : '↑' }}
+              </th>
+              <th>액션</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="u in store.filtered" :key="u.id">
+            <tr v-for="u in store.filtered" :key="u.id" class="clickable" @click="goDetail(u)">
               <td>{{ u.name }}</td>
               <td>{{ u.email }}</td>
-              <td>{{ u.phone ?? '-' }}</td>
               <td><span class="badge" :class="ROLE_TONE[u.role]">{{ USER_ROLE_LABEL[u.role] }}</span></td>
               <td>
                 <span class="badge" :class="u.isActive ? 'badge-green' : 'badge-gray'">{{ u.isActive ? '활성' : '비활성' }}</span>
               </td>
               <td>{{ formatDate(u.createdAt) }}</td>
-              <td class="user-row-actions">
-                <button type="button" class="btn btn-outline btn-sm" @click="openEdit(u)">수정</button>
+              <td class="user-row-actions" @click.stop>
+                <button type="button" class="btn btn-outline btn-sm" @click="openEdit(u, $event)">수정</button>
                 <button
                   v-if="u.id !== auth.user?.id && u.isActive"
                   type="button"
                   class="btn btn-outline btn-sm btn-danger-outline"
                   :disabled="store.deleteLoadingId === u.id"
-                  @click="handleDelete(u)"
+                  @click="handleDelete(u, $event)"
                 >
-                  {{ store.deleteLoadingId === u.id ? '처리 중...' : '비활성화' }}
+                  {{ store.deleteLoadingId === u.id ? '...' : '비활성' }}
                 </button>
               </td>
             </tr>
@@ -133,7 +142,7 @@ async function toggleIncludeInactive() {
       </div>
     </div>
 
-    <UserFormModal v-if="showForm && editingUser" :user="editingUser" @close="closeForm" @saved="handleSaved" />
+    <UserFormModal v-if="showForm && editingUser" :user="editingUser" @close="closeForm" @saved="closeForm" />
   </div>
 </template>
 
@@ -145,13 +154,9 @@ async function toggleIncludeInactive() {
   white-space: nowrap;
 }
 
-.filter-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.85rem;
-  color: var(--color-text);
-  white-space: nowrap;
+.sortable {
+  cursor: pointer;
+  user-select: none;
 }
 
 .table-empty {

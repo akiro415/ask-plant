@@ -65,6 +65,12 @@ const router = createRouter({
           meta: { title: '위치관리', breadcrumb: ['위치관리'], isMock: false },
         },
         {
+          path: 'locations/:id',
+          name: 'admin-location-detail',
+          component: () => import('@/views/admin/locations/LocationDetailView.vue'),
+          meta: { title: '위치 상세', breadcrumb: ['위치관리', '위치 상세'], isMock: false },
+        },
+        {
           path: 'photos',
           name: 'admin-photo-list',
           component: () => import('@/views/admin/photos/PhotoListView.vue'),
@@ -77,6 +83,12 @@ const router = createRouter({
           meta: { title: 'QR관리', breadcrumb: ['QR관리'], isMock: false },
         },
         {
+          path: 'qr/:plantId',
+          name: 'admin-qr-detail',
+          component: () => import('@/views/admin/qr/QrDetailView.vue'),
+          meta: { title: 'QR 상세', breadcrumb: ['QR관리', 'QR 상세'], isMock: false },
+        },
+        {
           path: 'common-codes',
           name: 'admin-common-codes',
           component: () => import('@/views/admin/common-codes/CommonCodeListView.vue'),
@@ -87,6 +99,12 @@ const router = createRouter({
           name: 'admin-user-list',
           component: () => import('@/views/admin/users/UserListView.vue'),
           meta: { title: '사용자관리', breadcrumb: ['사용자관리'], isMock: false },
+        },
+        {
+          path: 'users/:id',
+          name: 'admin-user-detail',
+          component: () => import('@/views/admin/users/UserDetailView.vue'),
+          meta: { title: '사용자 상세', breadcrumb: ['사용자관리', '사용자 상세'], isMock: false, roles: ['ADMIN'] as UserRole[] },
         },
         {
           path: 'settings',

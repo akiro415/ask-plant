@@ -1,17 +1,24 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useSpeciesStore } from '@/stores/species';
 import { usePlantStore } from '@/stores/plant';
 import { useUiStore } from '@/stores/ui';
+import { useAuthStore } from '@/stores/auth';
 import { TAXON_RANK_LABEL } from '@/types/species';
 import StatusBadge from '@/components/common/StatusBadge.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
+import DetailEditToolbar from '@/components/common/DetailEditToolbar.vue';
+import SpeciesFormModal from './SpeciesFormModal.vue';
 
 const route = useRoute();
 const speciesStore = useSpeciesStore();
 const plantStore = usePlantStore();
 const ui = useUiStore();
+const auth = useAuthStore();
+
+const showForm = ref(false);
+const canManage = computed(() => auth.hasRole('ADMIN', 'STAFF'));
 
 const species = computed(() => speciesStore.findById(String(route.params.id)));
 const plants = computed(() => plantStore.plants.filter((p) => p.species.id === species.value?.id));
@@ -42,6 +49,7 @@ watch(() => route.params.id, sync);
         <h1>{{ species.displayName }}</h1>
         <p class="page-header-subtitle">{{ species.scientificName ?? '학명 미상' }} · {{ TAXON_RANK_LABEL[species.taxonRank] }}</p>
       </div>
+      <DetailEditToolbar v-if="canManage" :edit-mode="false" @edit="showForm = true" />
     </div>
 
     <div class="species-detail-grid">
@@ -88,6 +96,8 @@ watch(() => route.params.id, sync);
         </table>
       </div>
     </section>
+
+    <SpeciesFormModal v-if="showForm" :species="species" @close="showForm = false" @saved="showForm = false" />
   </div>
   <EmptyState v-else message="해당 품종을 찾을 수 없습니다." icon="🔍" />
 </template>

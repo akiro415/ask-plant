@@ -91,6 +91,9 @@ export interface CreatePlantPayload {
   memo?: string | null;
 }
 
+/** PUT /plants/:id — speciesId/qrCode 변경 불가 */
+export type UpdatePlantPayload = Omit<CreatePlantPayload, 'speciesId'>;
+
 // ── DTO → 앱 타입(client/src/types/plant.ts) 매핑 ──
 // 현재 API는 species.category, childPlantCount, 이력의 담당자/위치/사진 등 일부 필드를 내려주지 않는다.
 // 해당 필드는 화면이 깨지지 않도록 안전한 기본값(null/0/[])으로 채운다.
@@ -178,6 +181,11 @@ export const plantApi = {
 
   async create(payload: CreatePlantPayload): Promise<PlantDetail> {
     const { data } = await httpClient.post<ApiItemResponse<ApiPlantDetail>>('/plants', payload);
+    return toDetail(data.data);
+  },
+
+  async update(id: string, payload: UpdatePlantPayload): Promise<PlantDetail> {
+    const { data } = await httpClient.put<ApiItemResponse<ApiPlantDetail>>(`/plants/${id}`, payload);
     return toDetail(data.data);
   },
 };

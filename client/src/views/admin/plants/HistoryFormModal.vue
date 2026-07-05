@@ -1,23 +1,38 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive } from 'vue';
+import { computed, onMounted, reactive, watch } from 'vue';
 import { useHistoryStore } from '@/stores/history';
+import type { PlantHistory } from '@/types/history';
 import Modal from '@/components/common/Modal.vue';
 
-const props = defineProps<{ plantId: string }>();
+const props = defineProps<{ plantId: string; history?: PlantHistory | null }>();
 const emit = defineEmits<{ close: []; saved: [] }>();
 
 const store = useHistoryStore();
+const isEdit = computed(() => Boolean(props.history));
 
 onMounted(() => {
   store.ensureTypeOptionsLoaded();
 });
 
 const form = reactive({
-  type: store.typeOptions[0]?.code ?? 'MEMO',
-  description: '',
-  performedAt: new Date().toISOString().slice(0, 16),
-  title: '',
+  type: props.history?.historyType.code ?? store.typeOptions[0]?.code ?? 'MEMO',
+  description: props.history?.description ?? '',
+  performedAt: props.history?.performedAt
+    ? props.history.performedAt.slice(0, 16)
+    : new Date().toISOString().slice(0, 16),
+  title: props.history?.title ?? '',
 });
+
+watch(
+  () => props.history,
+  (history) => {
+    if (!history) return;
+    form.type = history.historyType.code;
+    form.description = history.description ?? '';
+    form.performedAt = history.performedAt.slice(0, 16);
+    form.title = history.title ?? '';
+  },
+);
 
 const isValid = computed(() => form.type.trim().length > 0);
 const canSubmit = computed(() => isValid.value && !store.formLoading);
@@ -25,50 +40,48 @@ const canSubmit = computed(() => isValid.value && !store.formLoading);
 async function handleSubmit() {
   if (!isValid.value) return;
 
-  const ok = await store.createHistory(props.plantId, {
+  const payload = {
     type: form.type,
     description: form.description.trim() ? form.description.trim() : null,
     performedAt: new Date(form.performedAt).toISOString(),
     title: form.title.trim() ? form.title.trim() : null,
-  });
+  };
+
+  const ok = isEdit.value && props.history
+    ? await store.updateHistory(props.history.id, props.plantId, payload)
+    : await store.createHistory(props.plantId, payload);
 
   if (ok) emit('saved');
 }
 </script>
 
 <template>
-  <Modal title="이력 등록" @close="emit('close')">
+  <Modal :title="isEdit ? '이력 수정' : '이력 등록'" @close="emit('close')">
     <form class="history-form" @submit.prevent="handleSubmit">
       <div class="form-field">
         <label for="hf-type">유형 <span class="required">*</span></label>
         <select id="hf-type" v-model="form.type" required>
-          <option v-for="t in store.typeOptions" :key="t.id" :value="t.code">{{ t.name }} ({{ t.code }})</option>
-          <option v-if="store.typeOptions.length === 0" value="MEMO">메모 (MEMO)</option>
+          <option v-for="opt in store.typeOptions" :key="opt.code" :value="opt.code">{{ opt.name }}</option>
         </select>
       </div>
-
+      <div class="form-field">
+        <label for="hf-title">제목</label>
+        <input id="hf-title" v-model="form.title" type="text" />
+      </div>
       <div class="form-field">
         <label for="hf-performedAt">일시</label>
         <input id="hf-performedAt" v-model="form.performedAt" type="datetime-local" />
       </div>
-
       <div class="form-field">
-        <label for="hf-title">제목</label>
-        <input id="hf-title" v-model="form.title" type="text" placeholder="선택 입력" />
+        <label for="hf-desc">설명</label>
+        <textarea id="hf-desc" v-model="form.description" rows="3" />
       </div>
-
-      <div class="form-field">
-        <label for="hf-description">설명</label>
-        <textarea id="hf-description" v-model="form.description" rows="3" placeholder="이력 내용을 입력하세요" />
-      </div>
-
       <p v-if="store.formError" class="form-error">{{ store.formError }}</p>
     </form>
-
     <template #footer>
       <button type="button" class="btn btn-ghost" @click="emit('close')">취소</button>
       <button type="button" class="btn btn-primary" :disabled="!canSubmit" @click="handleSubmit">
-        {{ store.formLoading ? '등록 중...' : '등록' }}
+        {{ store.formLoading ? '저장 중...' : '저장' }}
       </button>
     </template>
   </Modal>
@@ -90,7 +103,6 @@ async function handleSubmit() {
 .form-field label {
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--color-text);
 }
 
 .required {
@@ -104,13 +116,7 @@ async function handleSubmit() {
   border: 1px solid var(--color-border);
   border-radius: 8px;
   font-size: 0.88rem;
-  background: var(--color-surface);
-  color: var(--color-text);
   font-family: inherit;
-}
-
-.form-field textarea {
-  resize: vertical;
 }
 
 .form-error {

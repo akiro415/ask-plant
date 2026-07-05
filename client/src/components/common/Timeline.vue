@@ -9,7 +9,7 @@ defineProps<{
   deleteLoadingId?: string | null;
 }>();
 
-const emit = defineEmits<{ delete: [id: string] }>();
+const emit = defineEmits<{ delete: [id: string]; edit: [history: PlantHistory] }>();
 </script>
 
 <template>
@@ -20,6 +20,7 @@ const emit = defineEmits<{ delete: [id: string] }>();
         <span class="timeline-title">{{ h.title ?? h.historyType.name }}</span>
         <div class="timeline-header-right">
           <span class="timeline-date">{{ formatDateTime(h.performedAt) }}</span>
+          <button v-if="showActions" type="button" class="btn btn-outline btn-sm" @click="emit('edit', h)">수정</button>
           <button
             v-if="showActions"
             type="button"

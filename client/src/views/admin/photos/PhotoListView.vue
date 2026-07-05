@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { usePhotoStore } from '@/stores/photo';
+import type { ImageApiRow } from '@/api/image.api';
 import type { ImageType } from '@/types/image';
 import { IMAGE_TYPE_LABEL } from '@/types/image';
 import PageHeader from '@/components/common/PageHeader.vue';
@@ -11,13 +12,25 @@ import { formatDate } from '@/utils/format';
 
 const store = usePhotoStore();
 const showForm = ref(false);
+const editingImage = ref<ImageApiRow | null>(null);
 
 onMounted(() => {
   store.fetchPhotoList();
 });
 
+function openCreate() {
+  editingImage.value = null;
+  showForm.value = true;
+}
+
+function openEdit(img: ImageApiRow) {
+  editingImage.value = img;
+  showForm.value = true;
+}
+
 function closeForm() {
   showForm.value = false;
+  editingImage.value = null;
 }
 
 async function handleDelete(id: string) {
@@ -30,7 +43,7 @@ async function handleDelete(id: string) {
   <div>
     <PageHeader title="사진관리" subtitle="개체별 대표/꽃/판매/기타 사진을 관리합니다.">
       <template #actions>
-        <button type="button" class="btn btn-primary" @click="showForm = true">+ 사진 업로드</button>
+        <button type="button" class="btn btn-primary" @click="openCreate">+ 사진 업로드</button>
       </template>
     </PageHeader>
 
@@ -67,18 +80,21 @@ async function handleDelete(id: string) {
             <div class="photo-meta">{{ img.plant.qrCode }} · {{ formatDate(img.createdAt) }}</div>
           </div>
         </RouterLink>
-        <button
-          type="button"
-          class="photo-delete-btn btn btn-outline btn-sm btn-danger-outline"
-          :disabled="store.deleteLoadingId === img.id"
-          @click="handleDelete(img.id)"
-        >
-          {{ store.deleteLoadingId === img.id ? '...' : '삭제' }}
-        </button>
+        <div class="photo-card-actions">
+          <button type="button" class="btn btn-outline btn-sm" @click="openEdit(img)">수정</button>
+          <button
+            type="button"
+            class="btn btn-outline btn-sm btn-danger-outline"
+            :disabled="store.deleteLoadingId === img.id"
+            @click="handleDelete(img.id)"
+          >
+            {{ store.deleteLoadingId === img.id ? '...' : '삭제' }}
+          </button>
+        </div>
       </div>
     </div>
 
-    <PhotoFormModal v-if="showForm" @close="closeForm" @saved="closeForm" />
+    <PhotoFormModal v-if="showForm" :image="editingImage" @close="closeForm" @saved="closeForm" />
   </div>
 </template>
 
@@ -154,8 +170,10 @@ async function handleDelete(id: string) {
   color: var(--color-text-muted);
 }
 
-.photo-delete-btn {
-  align-self: flex-end;
+.photo-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.35rem;
 }
 
 .btn-danger-outline {

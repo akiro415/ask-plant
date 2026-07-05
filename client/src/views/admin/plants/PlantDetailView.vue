@@ -4,21 +4,30 @@ import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { usePlantStore } from '@/stores/plant';
 import { useHistoryStore } from '@/stores/history';
 import { useUiStore } from '@/stores/ui';
+import { useAuthStore } from '@/stores/auth';
 import ImageGallery from '@/components/common/ImageGallery.vue';
 import StatusBadge from '@/components/common/StatusBadge.vue';
 import Timeline from '@/components/common/Timeline.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
+import DetailEditToolbar from '@/components/common/DetailEditToolbar.vue';
 import HistoryFormModal from './HistoryFormModal.vue';
+import PlantFormModal from './PlantFormModal.vue';
 import { placeholderQr } from '@/utils/placeholder';
 import { formatCurrency, formatDate } from '@/utils/format';
+import type { PlantHistory } from '@/types/history';
 
 const route = useRoute();
 const router = useRouter();
 const store = usePlantStore();
 const historyStore = useHistoryStore();
 const ui = useUiStore();
+const auth = useAuthStore();
 
 const showHistoryForm = ref(false);
+const editingHistory = ref<PlantHistory | null>(null);
+const showPlantForm = ref(false);
+
+const canManage = computed(() => auth.hasRole('ADMIN', 'STAFF'));
 
 const loading = computed(() => store.detailLoading);
 const error = computed(() => store.detailError);
@@ -39,6 +48,21 @@ async function handleDeleteHistory(id: string) {
   if (!plant.value) return;
   if (!confirm('이 이력을 삭제하시겠습니까?')) return;
   await historyStore.deleteHistory(id, plant.value.id);
+}
+
+function openHistoryCreate() {
+  editingHistory.value = null;
+  showHistoryForm.value = true;
+}
+
+function openHistoryEdit(history: PlantHistory) {
+  editingHistory.value = history;
+  showHistoryForm.value = true;
+}
+
+function closeHistoryForm() {
+  showHistoryForm.value = false;
+  editingHistory.value = null;
 }
 
 onMounted(load);
@@ -63,6 +87,7 @@ watch(() => route.params.id, load);
       </div>
       <div class="detail-actions">
         <StatusBadge :code="plant.status.code" :label="plant.status.name" />
+        <DetailEditToolbar v-if="canManage" :edit-mode="false" @edit="showPlantForm = true" />
         <button type="button" class="btn btn-outline btn-sm" @click="router.back()">← 목록으로</button>
       </div>
     </div>
@@ -135,7 +160,7 @@ watch(() => route.params.id, load);
     <section class="panel timeline-panel">
       <div class="timeline-panel-header">
         <h2 class="info-card-title">Timeline (이력)</h2>
-        <button type="button" class="btn btn-outline btn-sm" @click="showHistoryForm = true">+ 이력 추가</button>
+        <button type="button" class="btn btn-outline btn-sm" @click="openHistoryCreate">+ 이력 추가</button>
       </div>
       <p v-if="historyStore.deleteError" class="form-error">{{ historyStore.deleteError }}</p>
       <div v-if="historyStore.listLoading" class="timeline-loading">
@@ -147,10 +172,18 @@ watch(() => route.params.id, load);
         show-actions
         :delete-loading-id="historyStore.deleteLoadingId"
         @delete="handleDeleteHistory"
+        @edit="openHistoryEdit"
       />
     </section>
 
-    <HistoryFormModal v-if="showHistoryForm && plant" :plant-id="plant.id" @close="showHistoryForm = false" @saved="showHistoryForm = false" />
+    <HistoryFormModal
+      v-if="showHistoryForm && plant"
+      :plant-id="plant.id"
+      :history="editingHistory"
+      @close="closeHistoryForm"
+      @saved="closeHistoryForm"
+    />
+    <PlantFormModal v-if="showPlantForm && plant" :plant="plant" @close="showPlantForm = false" @saved="showPlantForm = false" />
   </div>
 
   <EmptyState v-else message="해당 개체를 찾을 수 없습니다." icon="🔍" />

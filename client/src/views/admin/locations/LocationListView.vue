@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { useLocationStore } from '@/stores/location';
 import { usePlantStore } from '@/stores/plant';
 import { useAuthStore } from '@/stores/auth';
@@ -11,6 +12,7 @@ import LocationFormModal from './LocationFormModal.vue';
 const store = useLocationStore();
 const plantStore = usePlantStore();
 const auth = useAuthStore();
+const router = useRouter();
 
 const canManage = () => auth.hasRole('ADMIN', 'STAFF');
 
@@ -83,7 +85,7 @@ async function handleDelete(location: PlantLocation) {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="loc in store.locations" :key="loc.id">
+            <tr v-for="loc in store.locations" :key="loc.id" class="clickable" @click="router.push(`/admin/locations/${loc.id}`)">
               <td>
                 <span :style="{ paddingLeft: `${loc.depth * 1.25}rem` }">
                   <span v-if="loc.depth > 0" class="tree-branch">└</span>
@@ -98,7 +100,7 @@ async function handleDelete(location: PlantLocation) {
                 <span v-else class="text-muted">-</span>
               </td>
               <td>{{ loc.plantCount }}개</td>
-              <td v-if="canManage()" class="location-row-actions">
+              <td v-if="canManage()" class="location-row-actions" @click.stop>
                 <button type="button" class="btn btn-outline btn-sm" @click="openEdit(loc)">수정</button>
                 <button
                   type="button"
