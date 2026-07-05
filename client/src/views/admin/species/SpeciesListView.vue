@@ -8,6 +8,7 @@ import { TAXON_RANK_LABEL, type Species } from '@/types/species';
 import PageHeader from '@/components/common/PageHeader.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import SpeciesFormModal from './SpeciesFormModal.vue';
+import BaseButton from '@/components/base/BaseButton.vue';
 
 const store = useSpeciesStore();
 const plantStore = usePlantStore();
@@ -53,11 +54,11 @@ async function handleDelete(species: Species) {
   <div>
     <PageHeader title="품종관리" subtitle="Species는 유통명(displayName) 중심으로 관리됩니다.">
       <template #actions>
-        <button v-if="canManage()" type="button" class="btn btn-primary" @click="openCreate">+ 품종 등록</button>
+        <BaseButton v-if="canManage()" variant="primary" @click="openCreate">+ 품종 등록</BaseButton>
       </template>
     </PageHeader>
 
-    <p v-if="store.deleteError" class="form-error">{{ store.deleteError }}</p>
+    <p v-if="store.deleteError" class="form-error form-error--block">{{ store.deleteError }}</p>
 
     <div class="filter-bar">
       <input
@@ -78,7 +79,7 @@ async function handleDelete(species: Species) {
     </div>
     <div v-else-if="store.listError" class="panel">
       <EmptyState :message="store.listError" icon="⚠️" />
-      <div class="table-empty-actions"><button type="button" class="btn btn-outline btn-sm" @click="store.fetchSpecies">다시 시도</button></div>
+      <div class="table-empty-actions"><BaseButton variant="outline" size="sm" @click="store.fetchSpecies">다시 시도</BaseButton></div>
     </div>
     <div v-else-if="store.filtered.length === 0" class="panel">
       <EmptyState message="조건에 맞는 품종이 없습니다." icon="🌱" />
@@ -101,15 +102,16 @@ async function handleDelete(species: Species) {
           <div class="species-count">보유 개체 {{ s.plantCount }}개</div>
         </div>
         <div v-if="canManage()" class="species-card-actions">
-          <button type="button" class="btn btn-outline btn-sm" @click.stop.prevent="openEdit(s)">수정</button>
-          <button
-            type="button"
-            class="btn btn-outline btn-sm btn-danger-outline"
+          <BaseButton variant="outline" size="sm" @click.stop.prevent="openEdit(s)">수정</BaseButton>
+          <BaseButton
+            variant="outline"
+            size="sm"
+            destructive
             :disabled="store.deleteLoadingId === s.id"
             @click.stop.prevent="handleDelete(s)"
           >
             {{ store.deleteLoadingId === s.id ? '삭제 중...' : '삭제' }}
-          </button>
+          </BaseButton>
         </div>
       </RouterLink>
     </div>
@@ -212,17 +214,4 @@ async function handleDelete(species: Species) {
   padding: 0 1rem 0.9rem;
 }
 
-.btn-danger-outline {
-  color: var(--color-danger);
-  border-color: var(--color-danger);
-}
-
-.form-error {
-  margin-bottom: 1rem;
-  padding: 0.6rem 0.9rem;
-  border-radius: 8px;
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-  font-size: 0.85rem;
-}
 </style>

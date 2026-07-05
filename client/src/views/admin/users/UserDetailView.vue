@@ -7,6 +7,7 @@ import { USER_ROLE_LABEL, type UserRole } from '@/types/user';
 import EmptyState from '@/components/common/EmptyState.vue';
 import DetailEditToolbar from '@/components/common/DetailEditToolbar.vue';
 import { formatDate } from '@/utils/format';
+import BaseButton from '@/components/base/BaseButton.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -78,7 +79,7 @@ watch(() => route.params.id, load);
   <div v-if="store.detailLoading" class="panel"><EmptyState message="사용자 정보를 불러오는 중..." icon="⏳" /></div>
   <div v-else-if="store.detailError" class="panel">
     <EmptyState :message="store.detailError" icon="⚠️" />
-    <div class="actions-center"><button type="button" class="btn btn-outline btn-sm" @click="load">다시 시도</button></div>
+    <div class="actions-center"><BaseButton variant="outline" size="sm" @click="load">다시 시도</BaseButton></div>
   </div>
   <div v-else-if="user">
     <div class="page-header-row">
@@ -95,7 +96,7 @@ watch(() => route.params.id, load);
           @save="saveEdit"
           @cancel="cancelEdit"
         />
-        <button type="button" class="btn btn-outline btn-sm" @click="router.push('/admin/users')">← 목록으로</button>
+        <BaseButton variant="outline" size="sm" @click="router.push('/admin/users')">← 목록으로</BaseButton>
       </div>
     </div>
 
@@ -126,9 +127,15 @@ watch(() => route.params.id, load);
     </section>
 
     <div v-if="canManage && !editMode && user.isActive && user.id !== auth.user?.id" class="danger-actions">
-      <button type="button" class="btn btn-outline btn-sm btn-danger-outline" :disabled="store.deleteLoadingId === user.id" @click="handleDeactivate">
+      <BaseButton
+        variant="outline"
+        size="sm"
+        destructive
+        :disabled="store.deleteLoadingId === user.id"
+        @click="handleDeactivate"
+      >
         {{ store.deleteLoadingId === user.id ? '처리 중...' : '비활성화' }}
-      </button>
+      </BaseButton>
     </div>
   </div>
   <EmptyState v-else message="사용자를 찾을 수 없습니다." icon="👤" />
@@ -193,14 +200,6 @@ watch(() => route.params.id, load);
   font-weight: 500;
 }
 
-.form-error {
-  padding: 0.6rem 0.9rem;
-  border-radius: 8px;
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-  font-size: 0.85rem;
-}
-
 .actions-center {
   display: flex;
   justify-content: center;
@@ -209,10 +208,5 @@ watch(() => route.params.id, load);
 
 .danger-actions {
   margin-top: 1rem;
-}
-
-.btn-danger-outline {
-  color: var(--color-danger);
-  border-color: var(--color-danger);
 }
 </style>

@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, watch } from 'vue';
 import { useHistoryStore } from '@/stores/history';
 import type { PlantHistory } from '@/types/history';
 import Modal from '@/components/common/Modal.vue';
+import BaseButton from '@/components/base/BaseButton.vue';
 
 const props = defineProps<{ plantId: string; history?: PlantHistory | null }>();
 const emit = defineEmits<{ close: []; saved: [] }>();
@@ -79,10 +80,10 @@ async function handleSubmit() {
       <p v-if="store.formError" class="form-error">{{ store.formError }}</p>
     </form>
     <template #footer>
-      <button type="button" class="btn btn-ghost" @click="emit('close')">취소</button>
-      <button type="button" class="btn btn-primary" :disabled="!canSubmit" @click="handleSubmit">
+      <BaseButton variant="ghost" @click="emit('close')">취소</BaseButton>
+      <BaseButton variant="primary" :disabled="!canSubmit" @click="handleSubmit">
         {{ store.formLoading ? '저장 중...' : '저장' }}
-      </button>
+      </BaseButton>
     </template>
   </Modal>
 </template>
@@ -117,13 +118,5 @@ async function handleSubmit() {
   border-radius: 8px;
   font-size: 0.88rem;
   font-family: inherit;
-}
-
-.form-error {
-  padding: 0.6rem 0.9rem;
-  border-radius: 8px;
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-  font-size: 0.85rem;
 }
 </style>

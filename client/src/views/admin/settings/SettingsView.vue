@@ -11,11 +11,9 @@ import { USER_ROLE_LABEL } from '@/types/user';
 import PageHeader from '@/components/common/PageHeader.vue';
 
 import EmptyState from '@/components/common/EmptyState.vue';
-
-
+import BaseButton from '@/components/base/BaseButton.vue';
 
 const store = useSettingsStore();
-
 const commonCode = useCommonCodeStore();
 
 
@@ -82,7 +80,7 @@ async function handleSaveSystem() {
 
           <EmptyState :message="store.profileError" icon="⚠️" />
 
-          <div class="section-actions"><button type="button" class="btn btn-outline btn-sm" @click="store.loadProfile">다시 시도</button></div>
+          <div class="section-actions"><BaseButton variant="outline" size="sm" @click="store.loadProfile">다시 시도</BaseButton></div>
 
         </div>
 
@@ -126,11 +124,11 @@ async function handleSaveSystem() {
 
           <div class="section-actions">
 
-            <button type="button" class="btn btn-primary btn-sm" :disabled="store.saveLoading" @click="handleSaveProfile">
+            <BaseButton variant="primary" size="sm" :disabled="store.saveLoading" @click="handleSaveProfile">
 
               {{ store.saveLoading ? '저장 중...' : '프로필 저장' }}
 
-            </button>
+            </BaseButton>
 
           </div>
 
@@ -154,7 +152,7 @@ async function handleSaveSystem() {
 
           <EmptyState :message="store.systemError" icon="⚠️" />
 
-          <div class="section-actions"><button type="button" class="btn btn-outline btn-sm" @click="store.loadSystemSettings">다시 시도</button></div>
+          <div class="section-actions"><BaseButton variant="outline" size="sm" @click="store.loadSystemSettings">다시 시도</BaseButton></div>
 
         </div>
 
@@ -202,11 +200,11 @@ async function handleSaveSystem() {
 
           <div v-if="store.canEditSystem" class="section-actions">
 
-            <button type="button" class="btn btn-primary btn-sm" :disabled="store.systemSaveLoading" @click="handleSaveSystem">
+            <BaseButton variant="primary" size="sm" :disabled="store.systemSaveLoading" @click="handleSaveSystem">
 
               {{ store.systemSaveLoading ? '저장 중...' : '시스템 설정 저장' }}
 
-            </button>
+            </BaseButton>
 
           </div>
 
@@ -244,11 +242,11 @@ async function handleSaveSystem() {
 
         <div v-if="store.canEditSystem" class="section-actions">
 
-          <button type="button" class="btn btn-primary btn-sm" :disabled="store.systemSaveLoading" @click="handleSaveSystem">
+          <BaseButton variant="primary" size="sm" :disabled="store.systemSaveLoading" @click="handleSaveSystem">
 
             {{ store.systemSaveLoading ? '저장 중...' : 'QR 설정 저장' }}
 
-          </button>
+          </BaseButton>
 
         </div>
 
@@ -282,11 +280,11 @@ async function handleSaveSystem() {
 
         <div v-if="store.canEditSystem" class="section-actions">
 
-          <button type="button" class="btn btn-primary btn-sm" :disabled="store.systemSaveLoading" @click="handleSaveSystem">
+          <BaseButton variant="primary" size="sm" :disabled="store.systemSaveLoading" @click="handleSaveSystem">
 
             {{ store.systemSaveLoading ? '저장 중...' : '알림 설정 저장' }}
 
-          </button>
+          </BaseButton>
 
         </div>
 
@@ -423,24 +421,6 @@ async function handleSaveSystem() {
   justify-content: flex-end;
 
   margin-top: 0.5rem;
-
-}
-
-
-
-.form-error {
-
-  padding: 0.5rem 0.75rem;
-
-  border-radius: 8px;
-
-  background: var(--color-danger-bg);
-
-  color: var(--color-danger);
-
-  font-size: 0.82rem;
-
-  margin-bottom: 0.5rem;
 
 }
 

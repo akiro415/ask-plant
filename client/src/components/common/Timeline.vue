@@ -2,6 +2,7 @@
 import type { PlantHistory } from '@/types/history';
 import { formatDateTime, formatCurrency } from '@/utils/format';
 import EmptyState from './EmptyState.vue';
+import BaseButton from '@/components/base/BaseButton.vue';
 
 defineProps<{
   histories: PlantHistory[];
@@ -20,16 +21,17 @@ const emit = defineEmits<{ delete: [id: string]; edit: [history: PlantHistory] }
         <span class="timeline-title">{{ h.title ?? h.historyType.name }}</span>
         <div class="timeline-header-right">
           <span class="timeline-date">{{ formatDateTime(h.performedAt) }}</span>
-          <button v-if="showActions" type="button" class="btn btn-outline btn-sm" @click="emit('edit', h)">수정</button>
-          <button
+          <BaseButton v-if="showActions" variant="outline" size="sm" @click="emit('edit', h)">수정</BaseButton>
+          <BaseButton
             v-if="showActions"
-            type="button"
-            class="btn btn-outline btn-sm btn-danger-outline"
+            variant="outline"
+            size="sm"
+            destructive
             :disabled="deleteLoadingId === h.id"
             @click="emit('delete', h.id)"
           >
             {{ deleteLoadingId === h.id ? '...' : '삭제' }}
-          </button>
+          </BaseButton>
         </div>
       </div>
       <div v-if="h.description" class="timeline-desc">{{ h.description }}</div>
@@ -49,18 +51,13 @@ const emit = defineEmits<{ delete: [id: string]; edit: [history: PlantHistory] }
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .timeline-header-right {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   flex-shrink: 0;
-}
-
-.btn-danger-outline {
-  color: var(--color-danger);
-  border-color: var(--color-danger);
 }
 </style>

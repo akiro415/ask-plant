@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import BaseButton from '@/components/base/BaseButton.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -52,9 +53,9 @@ async function handleSubmit() {
 
         <p v-if="auth.loginError" class="login-error">{{ auth.loginError }}</p>
 
-        <button type="submit" class="btn btn-primary login-submit" :disabled="auth.loginLoading">
+        <BaseButton type="submit" variant="primary" block class="login-submit" :disabled="auth.loginLoading">
           {{ auth.loginLoading ? '로그인 중...' : '로그인' }}
-        </button>
+        </BaseButton>
       </form>
 
       <div class="login-hint">
@@ -135,8 +136,6 @@ async function handleSubmit() {
 }
 
 .login-submit {
-  justify-content: center;
-  padding: 0.65rem 1rem;
   margin-top: 0.25rem;
 }
 

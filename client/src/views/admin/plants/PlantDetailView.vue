@@ -12,6 +12,7 @@ import EmptyState from '@/components/common/EmptyState.vue';
 import DetailEditToolbar from '@/components/common/DetailEditToolbar.vue';
 import HistoryFormModal from './HistoryFormModal.vue';
 import PlantFormModal from './PlantFormModal.vue';
+import BaseButton from '@/components/base/BaseButton.vue';
 import { placeholderQr } from '@/utils/placeholder';
 import { formatCurrency, formatDate } from '@/utils/format';
 import type { PlantHistory } from '@/types/history';
@@ -76,7 +77,7 @@ watch(() => route.params.id, load);
 
   <div v-else-if="error" class="panel detail-status-panel">
     <EmptyState :message="error" icon="⚠️" />
-    <div class="detail-status-actions"><button type="button" class="btn btn-outline btn-sm" @click="load">다시 시도</button></div>
+    <div class="detail-status-actions"><BaseButton variant="outline" size="sm" @click="load">다시 시도</BaseButton></div>
   </div>
 
   <div v-else-if="plant">
@@ -88,7 +89,7 @@ watch(() => route.params.id, load);
       <div class="detail-actions">
         <StatusBadge :code="plant.status.code" :label="plant.status.name" />
         <DetailEditToolbar v-if="canManage" :edit-mode="false" @edit="showPlantForm = true" />
-        <button type="button" class="btn btn-outline btn-sm" @click="router.back()">← 목록으로</button>
+        <BaseButton variant="outline" size="sm" @click="router.back()">← 목록으로</BaseButton>
       </div>
     </div>
 
@@ -129,7 +130,7 @@ watch(() => route.params.id, load);
             <img :src="qrImage" alt="QR" class="qr-image" />
             <div>
               <div class="qr-code-text">{{ plant.qrCode }}</div>
-              <RouterLink to="/admin/qr" class="btn btn-outline btn-sm">라벨 보기</RouterLink>
+              <BaseButton variant="outline" size="sm" to="/admin/qr">라벨 보기</BaseButton>
             </div>
           </div>
         </section>
@@ -160,9 +161,9 @@ watch(() => route.params.id, load);
     <section class="panel timeline-panel">
       <div class="timeline-panel-header">
         <h2 class="info-card-title">Timeline (이력)</h2>
-        <button type="button" class="btn btn-outline btn-sm" @click="openHistoryCreate">+ 이력 추가</button>
+        <BaseButton variant="outline" size="sm" @click="openHistoryCreate">+ 이력 추가</BaseButton>
       </div>
-      <p v-if="historyStore.deleteError" class="form-error">{{ historyStore.deleteError }}</p>
+      <p v-if="historyStore.deleteError" class="form-error form-error--block">{{ historyStore.deleteError }}</p>
       <div v-if="historyStore.listLoading" class="timeline-loading">
         <EmptyState message="이력을 불러오는 중..." icon="⏳" />
       </div>
@@ -314,14 +315,5 @@ watch(() => route.params.id, load);
 
 .timeline-loading {
   padding: 0.5rem 0;
-}
-
-.form-error {
-  margin-bottom: 0.75rem;
-  padding: 0.6rem 0.9rem;
-  border-radius: 8px;
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-  font-size: 0.85rem;
 }
 </style>

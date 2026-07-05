@@ -5,11 +5,9 @@ import { onMounted } from 'vue';
 import { useCartStore } from '@/stores/cart';
 
 import { formatCurrency } from '@/utils/format';
-
 import { RouterLink } from 'vue-router';
-
 import EmptyState from '@/components/common/EmptyState.vue';
-
+import BaseButton from '@/components/base/BaseButton.vue';
 import { placeholderImage } from '@/utils/placeholder';
 
 
@@ -66,7 +64,7 @@ onMounted(() => {
 
       <EmptyState :message="cart.error" icon="⚠️" />
 
-      <button type="button" class="btn btn-outline btn-sm" @click="cart.loadCart">다시 시도</button>
+      <BaseButton variant="outline" size="sm" @click="cart.loadCart">다시 시도</BaseButton>
 
     </div>
 
@@ -76,7 +74,7 @@ onMounted(() => {
 
       <p>장바구니가 비어있습니다.</p>
 
-      <RouterLink to="/p" class="btn btn-outline">둘러보러 가기</RouterLink>
+      <BaseButton variant="outline" to="/p">둘러보러 가기</BaseButton>
 
     </div>
 
@@ -138,9 +136,9 @@ onMounted(() => {
 
       <div class="public-cta-bar">
 
-        <button type="button" class="btn btn-outline" :disabled="cart.actionLoading" @click="cart.clear">비우기</button>
+        <BaseButton variant="outline" :disabled="cart.actionLoading" @click="cart.clear">비우기</BaseButton>
 
-        <button type="button" class="btn btn-primary" disabled title="주문/문의 API는 아직 구현되지 않았습니다">문의 접수하기</button>
+        <BaseButton variant="primary" disabled title="주문/문의 API는 아직 구현되지 않았습니다">문의 접수하기</BaseButton>
 
       </div>
 

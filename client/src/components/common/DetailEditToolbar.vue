@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import BaseButton from '@/components/base/BaseButton.vue';
+
 defineProps<{
   editMode: boolean;
   canEdit?: boolean;
@@ -11,13 +13,13 @@ const emit = defineEmits<{ edit: []; save: []; cancel: [] }>();
 <template>
   <div v-if="canEdit !== false" class="detail-edit-toolbar">
     <template v-if="!editMode">
-      <button type="button" class="btn btn-outline btn-sm" @click="emit('edit')">수정</button>
+      <BaseButton variant="outline" size="sm" @click="emit('edit')">수정</BaseButton>
     </template>
     <template v-else>
-      <button type="button" class="btn btn-ghost btn-sm" :disabled="saving" @click="emit('cancel')">취소</button>
-      <button type="button" class="btn btn-primary btn-sm" :disabled="saving" @click="emit('save')">
+      <BaseButton variant="ghost" size="sm" :disabled="saving" @click="emit('cancel')">취소</BaseButton>
+      <BaseButton variant="primary" size="sm" :disabled="saving" :loading="saving" @click="emit('save')">
         {{ saving ? '저장 중...' : '저장' }}
-      </button>
+      </BaseButton>
     </template>
   </div>
 </template>
@@ -26,6 +28,6 @@ const emit = defineEmits<{ edit: []; save: []; cancel: [] }>();
 .detail-edit-toolbar {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 </style>

@@ -8,6 +8,8 @@ import { useAuthStore } from '@/stores/auth';
 import EmptyState from '@/components/common/EmptyState.vue';
 import DetailEditToolbar from '@/components/common/DetailEditToolbar.vue';
 import LocationFormModal from './LocationFormModal.vue';
+import BaseButton from '@/components/base/BaseButton.vue';
+import BaseTable from '@/components/base/BaseTable.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -42,7 +44,7 @@ watch(location, sync);
   </div>
   <div v-else-if="!location" class="panel">
     <EmptyState message="해당 위치를 찾을 수 없습니다." icon="📍" />
-    <div class="table-empty-actions"><button type="button" class="btn btn-outline btn-sm" @click="router.push('/admin/locations')">목록으로</button></div>
+    <div class="table-empty-actions"><BaseButton variant="outline" size="sm" @click="router.push('/admin/locations')">목록으로</BaseButton></div>
   </div>
   <div v-else>
     <div class="page-header-row">
@@ -52,7 +54,7 @@ watch(location, sync);
       </div>
       <div class="detail-actions">
         <DetailEditToolbar v-if="canManage" :edit-mode="false" @edit="showForm = true" />
-        <button type="button" class="btn btn-outline btn-sm" @click="router.push('/admin/locations')">← 목록으로</button>
+        <BaseButton variant="outline" size="sm" @click="router.push('/admin/locations')">← 목록으로</BaseButton>
       </div>
     </div>
 
@@ -66,18 +68,16 @@ watch(location, sync);
     <section class="panel">
       <h2 class="info-card-title">위치 내 개체 ({{ plants.length }}개)</h2>
       <div v-if="plants.length === 0" class="table-empty"><EmptyState message="등록된 개체가 없습니다." icon="🪴" /></div>
-      <div v-else class="data-table-wrapper">
-        <table class="data-table">
-          <thead><tr><th>QR코드</th><th>품종</th><th>상태</th></tr></thead>
-          <tbody>
-            <tr v-for="p in plants" :key="p.id" class="clickable" @click="router.push(`/admin/plants/${p.id}`)">
-              <td><code>{{ p.qrCode }}</code></td>
-              <td>{{ p.species.displayName }}</td>
-              <td>{{ p.status.name }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <BaseTable v-else>
+        <thead><tr><th>QR코드</th><th>품종</th><th>상태</th></tr></thead>
+        <tbody>
+          <tr v-for="p in plants" :key="p.id" class="clickable" @click="router.push(`/admin/plants/${p.id}`)">
+            <td><code>{{ p.qrCode }}</code></td>
+            <td>{{ p.species.displayName }}</td>
+            <td>{{ p.status.name }}</td>
+          </tr>
+        </tbody>
+      </BaseTable>
     </section>
 
     <LocationFormModal v-if="showForm" :location="location" @close="showForm = false" @saved="showForm = false" />

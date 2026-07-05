@@ -3,6 +3,7 @@ import { computed, onMounted, reactive } from 'vue';
 import { useLocationStore } from '@/stores/location';
 import type { PlantLocation } from '@/types/location';
 import Modal from '@/components/common/Modal.vue';
+import BaseButton from '@/components/base/BaseButton.vue';
 
 const props = defineProps<{ location: PlantLocation | null }>();
 const emit = defineEmits<{ close: []; saved: [] }>();
@@ -117,10 +118,10 @@ async function handleSubmit() {
     </form>
 
     <template #footer>
-      <button type="button" class="btn btn-ghost" @click="emit('close')">취소</button>
-      <button type="button" class="btn btn-primary" :disabled="!canSubmit" @click="handleSubmit">
+      <BaseButton variant="ghost" @click="emit('close')">취소</BaseButton>
+      <BaseButton variant="primary" :disabled="!canSubmit" @click="handleSubmit">
         {{ store.formLoading ? '저장 중...' : isEdit ? '수정' : '등록' }}
-      </button>
+      </BaseButton>
     </template>
   </Modal>
 </template>
@@ -178,13 +179,5 @@ async function handleSubmit() {
   .form-field-row {
     grid-template-columns: 1fr;
   }
-}
-
-.form-error {
-  padding: 0.6rem 0.9rem;
-  border-radius: 8px;
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-  font-size: 0.85rem;
 }
 </style>

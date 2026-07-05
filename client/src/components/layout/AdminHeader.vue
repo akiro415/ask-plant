@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useUiStore } from '@/stores/ui';
 import { useAuthStore } from '@/stores/auth';
 import { USER_ROLE_LABEL } from '@/types/user';
+import BaseButton from '@/components/base/BaseButton.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -36,7 +37,7 @@ function handleLogout() {
           <div class="header-user-name">{{ auth.user.name }}</div>
           <div class="header-user-role">{{ USER_ROLE_LABEL[auth.user.role] }}</div>
         </div>
-        <button type="button" class="btn btn-ghost btn-sm header-logout" @click="handleLogout">로그아웃</button>
+        <BaseButton variant="ghost" size="sm" class="header-logout" @click="handleLogout">로그아웃</BaseButton>
       </div>
     </div>
   </header>

@@ -8,6 +8,8 @@ import type { PlantLocation } from '@/types/location';
 import PageHeader from '@/components/common/PageHeader.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import LocationFormModal from './LocationFormModal.vue';
+import BaseButton from '@/components/base/BaseButton.vue';
+import BaseTable from '@/components/base/BaseTable.vue';
 
 const store = useLocationStore();
 const plantStore = usePlantStore();
@@ -54,11 +56,11 @@ async function handleDelete(location: PlantLocation) {
   <div>
     <PageHeader title="위치관리" subtitle="온실 &gt; 구역 &gt; 선반의 계층 구조와 지도 좌표를 관리합니다.">
       <template #actions>
-        <button v-if="canManage()" type="button" class="btn btn-primary" @click="openCreate">+ 위치 등록</button>
+        <BaseButton v-if="canManage()" variant="primary" @click="openCreate">+ 위치 등록</BaseButton>
       </template>
     </PageHeader>
 
-    <p v-if="store.deleteError" class="form-error">{{ store.deleteError }}</p>
+    <p v-if="store.deleteError" class="form-error form-error--block">{{ store.deleteError }}</p>
 
     <div class="panel">
       <div v-if="store.listLoading" class="table-empty">
@@ -66,55 +68,56 @@ async function handleDelete(location: PlantLocation) {
       </div>
       <div v-else-if="store.listError" class="table-empty">
         <EmptyState :message="store.listError" icon="⚠️" />
-        <div class="table-empty-actions"><button type="button" class="btn btn-outline btn-sm" @click="store.fetchLocationList">다시 시도</button></div>
+        <div class="table-empty-actions"><BaseButton variant="outline" size="sm" @click="store.fetchLocationList">다시 시도</BaseButton></div>
       </div>
       <div v-else-if="store.locations.length === 0" class="table-empty">
         <EmptyState message="등록된 위치가 없습니다." icon="📍" />
       </div>
-      <div v-else class="data-table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>위치명</th>
-              <th>코드</th>
-              <th>유형</th>
-              <th>상위 위치</th>
-              <th>지도 좌표</th>
-              <th>개체 수</th>
-              <th v-if="canManage()">관리</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="loc in store.locations" :key="loc.id" class="clickable" @click="router.push(`/admin/locations/${loc.id}`)">
-              <td>
-                <span :style="{ paddingLeft: `${loc.depth * 1.25}rem` }">
-                  <span v-if="loc.depth > 0" class="tree-branch">└</span>
-                  {{ loc.name }}
-                </span>
-              </td>
-              <td><code>{{ loc.code }}</code></td>
-              <td><span class="badge badge-blue">{{ loc.type?.name ?? '-' }}</span></td>
-              <td>{{ loc.parentName ?? '-' }}</td>
-              <td>
-                <span v-if="loc.posX != null && loc.posY != null">x:{{ loc.posX.toFixed(2) }}, y:{{ loc.posY.toFixed(2) }}</span>
-                <span v-else class="text-muted">-</span>
-              </td>
-              <td>{{ loc.plantCount }}개</td>
-              <td v-if="canManage()" class="location-row-actions" @click.stop>
-                <button type="button" class="btn btn-outline btn-sm" @click="openEdit(loc)">수정</button>
-                <button
-                  type="button"
-                  class="btn btn-outline btn-sm btn-danger-outline"
+      <BaseTable v-else>
+        <thead>
+          <tr>
+            <th>위치명</th>
+            <th>코드</th>
+            <th>유형</th>
+            <th>상위 위치</th>
+            <th>지도 좌표</th>
+            <th>개체 수</th>
+            <th v-if="canManage()" class="col-actions">관리</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="loc in store.locations" :key="loc.id" class="clickable" @click="router.push(`/admin/locations/${loc.id}`)">
+            <td>
+              <span :style="{ paddingLeft: `${loc.depth * 1.25}rem` }">
+                <span v-if="loc.depth > 0" class="tree-branch">└</span>
+                {{ loc.name }}
+              </span>
+            </td>
+            <td><code>{{ loc.code }}</code></td>
+            <td><span class="badge badge-blue">{{ loc.type?.name ?? '-' }}</span></td>
+            <td>{{ loc.parentName ?? '-' }}</td>
+            <td>
+              <span v-if="loc.posX != null && loc.posY != null">x:{{ loc.posX.toFixed(2) }}, y:{{ loc.posY.toFixed(2) }}</span>
+              <span v-else class="text-muted">-</span>
+            </td>
+            <td>{{ loc.plantCount }}개</td>
+            <td v-if="canManage()" class="col-actions" @click.stop>
+              <div class="col-actions-inner">
+                <BaseButton variant="outline" size="sm" @click="openEdit(loc)">수정</BaseButton>
+                <BaseButton
+                  variant="outline"
+                  size="sm"
+                  destructive
                   :disabled="store.deleteLoadingId === loc.id"
                   @click="handleDelete(loc)"
                 >
                   {{ store.deleteLoadingId === loc.id ? '삭제 중...' : '삭제' }}
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                </BaseButton>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </BaseTable>
     </div>
 
     <LocationFormModal v-if="showForm" :location="editingLocation" @close="closeForm" @saved="handleSaved" />
@@ -157,26 +160,6 @@ async function handleDelete(location: PlantLocation) {
 }
 
 .location-map-note {
-  margin-top: 1.25rem;
-}
-
-.location-row-actions {
-  display: flex;
-  gap: 0.4rem;
-  white-space: nowrap;
-}
-
-.btn-danger-outline {
-  color: var(--color-danger);
-  border-color: var(--color-danger);
-}
-
-.form-error {
-  margin-bottom: 1rem;
-  padding: 0.6rem 0.9rem;
-  border-radius: 8px;
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-  font-size: 0.85rem;
+  margin-top: var(--space-5);
 }
 </style>

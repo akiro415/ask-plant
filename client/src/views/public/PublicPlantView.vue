@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute, useRouter, RouterLink } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { usePublicPlantStore } from '@/stores/publicPlant';
 import { useCartStore } from '@/stores/cart';
 import { useAuthStore } from '@/stores/auth';
 import ImageGallery from '@/components/common/ImageGallery.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
+import BaseButton from '@/components/base/BaseButton.vue';
 import { formatCurrency } from '@/utils/format';
 import { statusTone } from '@/utils/badge';
 
@@ -51,14 +52,14 @@ watch(() => route.params.qrCode, load);
 
   <div v-else-if="store.error" class="public-status-panel">
     <EmptyState :message="store.error" icon="⚠️" />
-    <div class="public-status-actions"><button type="button" class="btn btn-outline btn-sm" @click="load">다시 시도</button></div>
+    <div class="public-status-actions"><BaseButton variant="outline" size="sm" @click="load">다시 시도</BaseButton></div>
   </div>
 
   <div v-else-if="store.notFound" class="public-not-found">
     <p style="font-size: 2rem">🔍</p>
     <p>해당 QR코드의 식물 정보를 찾을 수 없습니다.</p>
     <p class="public-not-found-hint">QR 코드가 올바른지 확인하거나, 판매 종료·폐기된 개체일 수 있습니다.</p>
-    <RouterLink to="/p" class="btn btn-outline public-not-found-btn">둘러보기로 이동</RouterLink>
+    <BaseButton variant="outline" to="/p" class="public-not-found-btn">둘러보기로 이동</BaseButton>
   </div>
 
   <div v-else-if="store.plant">
@@ -104,10 +105,10 @@ watch(() => route.params.qrCode, load);
     </div>
 
     <div class="public-cta-bar">
-      <button type="button" class="btn btn-outline" @click="sendInquiry">문의하기</button>
-      <button type="button" class="btn btn-primary" :disabled="!store.canOrder || inCart" @click="addToCart">
+      <BaseButton variant="outline" @click="sendInquiry">문의하기</BaseButton>
+      <BaseButton variant="primary" :disabled="!store.canOrder || inCart" @click="addToCart">
         {{ inCart ? '담김 ✓' : store.canOrder ? '장바구니 담기' : '판매중 아님' }}
-      </button>
+      </BaseButton>
     </div>
   </div>
 </template>

@@ -7,6 +7,7 @@ import type { PlantDetail } from '@/types/plant';
 import type { CommonCode } from '@/types/common';
 import type { PlantLocation } from '@/types/location';
 import Modal from '@/components/common/Modal.vue';
+import BaseButton from '@/components/base/BaseButton.vue';
 import { extractErrorMessage } from '@/api/http';
 
 const props = defineProps<{ plant: PlantDetail }>();
@@ -182,10 +183,10 @@ async function handleSubmit() {
       <p v-if="store.updateError" class="form-error">{{ store.updateError }}</p>
     </form>
     <template #footer>
-      <button type="button" class="btn btn-ghost" @click="emit('close')">취소</button>
-      <button type="button" class="btn btn-primary" :disabled="!canSubmit" @click="handleSubmit">
+      <BaseButton variant="ghost" @click="emit('close')">취소</BaseButton>
+      <BaseButton variant="primary" :disabled="!canSubmit" @click="handleSubmit">
         {{ store.updateLoading ? '저장 중...' : '저장' }}
-      </button>
+      </BaseButton>
     </template>
   </Modal>
 </template>
@@ -235,14 +236,6 @@ async function handleSubmit() {
 .form-field input:disabled {
   background: var(--color-bg);
   color: var(--color-text-muted);
-}
-
-.form-error {
-  padding: 0.6rem 0.9rem;
-  border-radius: 8px;
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-  font-size: 0.85rem;
 }
 
 .form-loading {

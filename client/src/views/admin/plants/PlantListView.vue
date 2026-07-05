@@ -7,6 +7,8 @@ import PageHeader from '@/components/common/PageHeader.vue';
 import StatusBadge from '@/components/common/StatusBadge.vue';
 import Pagination from '@/components/common/Pagination.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
+import BaseButton from '@/components/base/BaseButton.vue';
+import BaseTable from '@/components/base/BaseTable.vue';
 import { formatCurrency, formatDate } from '@/utils/format';
 
 const store = usePlantStore();
@@ -32,7 +34,7 @@ function goCreate() {
   <div>
     <PageHeader title="개체관리" subtitle="QR로 식별되는 개별 다육 개체를 관리합니다.">
       <template #actions>
-        <button type="button" class="btn btn-primary" @click="goCreate">+ 개체 등록</button>
+        <BaseButton variant="primary" @click="goCreate">+ 개체 등록</BaseButton>
       </template>
     </PageHeader>
 
@@ -60,44 +62,42 @@ function goCreate() {
       </div>
       <div v-else-if="store.listError" class="table-empty">
         <EmptyState :message="store.listError" icon="⚠️" />
-        <div class="table-empty-actions"><button type="button" class="btn btn-outline btn-sm" @click="store.fetchPlants">다시 시도</button></div>
+        <div class="table-empty-actions"><BaseButton variant="outline" size="sm" @click="store.fetchPlants">다시 시도</BaseButton></div>
       </div>
       <div v-else-if="store.pagedPlants.length === 0" class="table-empty">
         <EmptyState message="조건에 맞는 개체가 없습니다." icon="🪴" />
       </div>
-      <div v-else class="data-table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>사진</th>
-              <th>QR코드</th>
-              <th>품종</th>
-              <th>닉네임</th>
-              <th>위치</th>
-              <th>상태</th>
-              <th>기원</th>
-              <th>판매가</th>
-              <th>등록일</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="plant in store.pagedPlants" :key="plant.id" class="clickable" @click="goDetail(plant.id)">
-              <td><img :src="plant.primaryImageUrl" alt="" class="row-thumb" /></td>
-              <td><code>{{ plant.qrCode }}</code></td>
-              <td>
-                <div class="cell-species-name">{{ plant.species.displayName }}</div>
-                <div class="cell-species-sci">{{ plant.species.scientificName ?? '학명 미상' }}</div>
-              </td>
-              <td>{{ plant.nickname ?? '-' }}</td>
-              <td>{{ plant.location?.name ?? '-' }}</td>
-              <td><StatusBadge :code="plant.status.code" :label="plant.status.name" /></td>
-              <td>{{ plant.originType.name }}</td>
-              <td>{{ formatCurrency(plant.sellingPrice) }}</td>
-              <td>{{ formatDate(plant.createdAt) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <BaseTable v-else>
+        <thead>
+          <tr>
+            <th>사진</th>
+            <th>QR코드</th>
+            <th>품종</th>
+            <th>닉네임</th>
+            <th>위치</th>
+            <th>상태</th>
+            <th>기원</th>
+            <th>판매가</th>
+            <th>등록일</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="plant in store.pagedPlants" :key="plant.id" class="clickable" @click="goDetail(plant.id)">
+            <td><img :src="plant.primaryImageUrl" alt="" class="row-thumb" /></td>
+            <td><code>{{ plant.qrCode }}</code></td>
+            <td>
+              <div class="cell-species-name">{{ plant.species.displayName }}</div>
+              <div class="cell-species-sci">{{ plant.species.scientificName ?? '학명 미상' }}</div>
+            </td>
+            <td>{{ plant.nickname ?? '-' }}</td>
+            <td>{{ plant.location?.name ?? '-' }}</td>
+            <td><StatusBadge :code="plant.status.code" :label="plant.status.name" /></td>
+            <td>{{ plant.originType.name }}</td>
+            <td>{{ formatCurrency(plant.sellingPrice) }}</td>
+            <td>{{ formatDate(plant.createdAt) }}</td>
+          </tr>
+        </tbody>
+      </BaseTable>
 
       <Pagination
         v-if="!store.listLoading && !store.listError && store.pagedPlants.length > 0"

@@ -8,6 +8,7 @@ import { IMAGE_TYPE_LABEL } from '@/types/image';
 import PageHeader from '@/components/common/PageHeader.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import PhotoFormModal from './PhotoFormModal.vue';
+import BaseButton from '@/components/base/BaseButton.vue';
 import { formatDate } from '@/utils/format';
 
 const store = usePhotoStore();
@@ -43,7 +44,7 @@ async function handleDelete(id: string) {
   <div>
     <PageHeader title="사진관리" subtitle="개체별 대표/꽃/판매/기타 사진을 관리합니다.">
       <template #actions>
-        <button type="button" class="btn btn-primary" @click="openCreate">+ 사진 업로드</button>
+        <BaseButton variant="primary" @click="openCreate">+ 사진 업로드</BaseButton>
       </template>
     </PageHeader>
 
@@ -58,14 +59,14 @@ async function handleDelete(id: string) {
       <span class="filter-total">총 {{ store.filtered.length }}건</span>
     </div>
 
-    <p v-if="store.deleteError" class="form-error">{{ store.deleteError }}</p>
+    <p v-if="store.deleteError" class="form-error form-error--block">{{ store.deleteError }}</p>
 
     <div v-if="store.listLoading" class="panel">
       <EmptyState message="사진 목록을 불러오는 중입니다..." icon="⏳" />
     </div>
     <div v-else-if="store.listError" class="panel">
       <EmptyState :message="store.listError" icon="⚠️" />
-      <div class="table-empty-actions"><button type="button" class="btn btn-outline btn-sm" @click="store.fetchPhotoList">다시 시도</button></div>
+      <div class="table-empty-actions"><BaseButton variant="outline" size="sm" @click="store.fetchPhotoList">다시 시도</BaseButton></div>
     </div>
     <div v-else-if="store.filtered.length === 0" class="panel">
       <EmptyState message="등록된 사진이 없습니다." icon="🖼️" />
@@ -81,15 +82,16 @@ async function handleDelete(id: string) {
           </div>
         </RouterLink>
         <div class="photo-card-actions">
-          <button type="button" class="btn btn-outline btn-sm" @click="openEdit(img)">수정</button>
-          <button
-            type="button"
-            class="btn btn-outline btn-sm btn-danger-outline"
+          <BaseButton variant="outline" size="sm" @click="openEdit(img)">수정</BaseButton>
+          <BaseButton
+            variant="outline"
+            size="sm"
+            destructive
             :disabled="store.deleteLoadingId === img.id"
             @click="handleDelete(img.id)"
           >
             {{ store.deleteLoadingId === img.id ? '...' : '삭제' }}
-          </button>
+          </BaseButton>
         </div>
       </div>
     </div>
@@ -103,15 +105,6 @@ async function handleDelete(id: string) {
   margin-left: auto;
   font-size: 0.82rem;
   color: var(--color-text-muted);
-}
-
-.form-error {
-  margin-bottom: 1rem;
-  padding: 0.6rem 0.9rem;
-  border-radius: 8px;
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-  font-size: 0.85rem;
 }
 
 .table-empty-actions {
@@ -174,10 +167,5 @@ async function handleDelete(id: string) {
   display: flex;
   justify-content: flex-end;
   gap: 0.35rem;
-}
-
-.btn-danger-outline {
-  color: var(--color-danger);
-  border-color: var(--color-danger);
 }
 </style>

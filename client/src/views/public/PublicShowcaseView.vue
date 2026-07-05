@@ -5,6 +5,7 @@ import { usePublicShowcaseStore } from '@/stores/publicShowcase';
 import { useCartStore } from '@/stores/cart';
 import { useAuthStore } from '@/stores/auth';
 import EmptyState from '@/components/common/EmptyState.vue';
+import BaseButton from '@/components/base/BaseButton.vue';
 import { formatCurrency } from '@/utils/format';
 import { placeholderImage } from '@/utils/placeholder';
 
@@ -84,7 +85,7 @@ watch(
         <option value="">전체 카테고리</option>
         <option v-for="cat in store.categoryOptions" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
       </select>
-      <button type="submit" class="btn btn-primary btn-sm">검색</button>
+      <BaseButton type="submit" variant="primary" size="sm">검색</BaseButton>
     </form>
 
     <div v-if="store.loading && store.items.length === 0" class="showcase-grid">
@@ -97,7 +98,7 @@ watch(
 
     <div v-else-if="store.error" class="showcase-status">
       <EmptyState :message="store.error" icon="⚠️" />
-      <button type="button" class="btn btn-outline btn-sm" @click="store.fetchList()">다시 시도</button>
+      <BaseButton variant="outline" size="sm" @click="store.fetchList()">다시 시도</BaseButton>
     </div>
 
     <div v-else-if="store.items.length === 0" class="showcase-status">
@@ -121,22 +122,23 @@ watch(
             <p class="showcase-card-sub">{{ item.species.displayName }}</p>
             <div class="showcase-card-footer">
               <span class="showcase-card-price">{{ formatCurrency(item.sellingPrice) }}</span>
-              <button
-                type="button"
-                class="btn btn-outline btn-sm showcase-cart-btn"
+              <BaseButton
+                variant="outline"
+                size="sm"
+                class="showcase-cart-btn"
                 :disabled="cart.actionLoading || cart.isInCart(item.qrCode)"
                 @click="addToCart(item.qrCode, $event)"
               >
                 {{ cart.isInCart(item.qrCode) ? '담김 ✓' : '담기' }}
-              </button>
+              </BaseButton>
             </div>
           </div>
         </RouterLink>
       </div>
       <div v-if="store.hasMore" class="showcase-more">
-        <button type="button" class="btn btn-outline" :disabled="store.loading" @click="store.loadMore()">
+        <BaseButton variant="outline" :disabled="store.loading" @click="store.loadMore()">
           {{ store.loading ? '불러오는 중...' : '더 보기' }}
-        </button>
+        </BaseButton>
       </div>
     </template>
   </div>

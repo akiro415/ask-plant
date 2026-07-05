@@ -5,6 +5,7 @@ import { useDashboardStore } from '@/stores/dashboard';
 import StatCard from '@/components/common/StatCard.vue';
 import StatusBadge from '@/components/common/StatusBadge.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
+import BaseButton from '@/components/base/BaseButton.vue';
 import { formatCurrency, formatDateTime } from '@/utils/format';
 
 const dashboard = useDashboardStore();
@@ -34,7 +35,7 @@ onMounted(() => {
     </div>
     <div v-else-if="dashboard.statsError" class="panel">
       <EmptyState :message="dashboard.statsError" icon="⚠️" />
-      <div class="table-empty-actions"><button type="button" class="btn btn-outline btn-sm" @click="dashboard.fetchStats">다시 시도</button></div>
+      <div class="table-empty-actions"><BaseButton variant="outline" size="sm" @click="dashboard.fetchStats">다시 시도</BaseButton></div>
     </div>
     <template v-else-if="summary">
     <div class="stat-grid">

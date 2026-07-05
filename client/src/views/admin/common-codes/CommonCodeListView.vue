@@ -4,6 +4,8 @@ import { useCommonCodeStore } from '@/stores/common-code';
 import { useUiStore } from '@/stores/ui';
 import PageHeader from '@/components/common/PageHeader.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
+import BaseButton from '@/components/base/BaseButton.vue';
+import BaseTable from '@/components/base/BaseTable.vue';
 
 const store = useCommonCodeStore();
 const ui = useUiStore();
@@ -29,9 +31,9 @@ onMounted(() => {
   <div>
     <PageHeader title="공통코드" subtitle="시스템 전반에서 사용되는 그룹별 코드값을 관리합니다.">
       <template #actions>
-        <button type="button" class="btn btn-primary" disabled title="조회 전용 API만 구현되어 있어 아직 비활성화됩니다">
+        <BaseButton variant="primary" disabled title="조회 전용 API만 구현되어 있어 아직 비활성화됩니다">
           + 코드 추가
-        </button>
+        </BaseButton>
       </template>
     </PageHeader>
 
@@ -51,7 +53,7 @@ onMounted(() => {
 
     <div v-else-if="store.error" class="panel">
       <EmptyState :message="store.error" icon="⚠️" />
-      <div class="table-empty-actions"><button type="button" class="btn btn-outline btn-sm" @click="store.fetchCodes">다시 시도</button></div>
+      <div class="table-empty-actions"><BaseButton variant="outline" size="sm" @click="store.fetchCodes">다시 시도</BaseButton></div>
     </div>
 
     <div v-else class="cc-layout">
@@ -91,32 +93,30 @@ onMounted(() => {
         <div v-else-if="store.filteredCodes.length === 0" class="table-empty">
           <EmptyState message="No Data — 조건에 맞는 코드가 없습니다." icon="🗂️" />
         </div>
-        <div v-else class="data-table-wrapper">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>순서</th>
-                <th>코드</th>
-                <th>명칭</th>
-                <th>설명</th>
-                <th>사용여부</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="c in store.filteredCodes" :key="c.id">
-                <td>{{ c.sortOrder }}</td>
-                <td><code>{{ c.code }}</code></td>
-                <td>{{ c.name }}</td>
-                <td class="cc-desc-cell">{{ c.description ?? '-' }}</td>
-                <td>
-                  <span class="badge" :class="c.isActive === false ? 'badge-gray' : 'badge-green'">
-                    {{ c.isActive === false ? '미사용' : '사용' }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <BaseTable v-else>
+          <thead>
+            <tr>
+              <th>순서</th>
+              <th>코드</th>
+              <th>명칭</th>
+              <th>설명</th>
+              <th>사용여부</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="c in store.filteredCodes" :key="c.id">
+              <td>{{ c.sortOrder }}</td>
+              <td><code>{{ c.code }}</code></td>
+              <td>{{ c.name }}</td>
+              <td class="cc-desc-cell">{{ c.description ?? '-' }}</td>
+              <td>
+                <span class="badge" :class="c.isActive === false ? 'badge-gray' : 'badge-green'">
+                  {{ c.isActive === false ? '미사용' : '사용' }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </BaseTable>
       </section>
     </div>
   </div>

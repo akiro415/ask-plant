@@ -10,6 +10,8 @@ import StatusBadge from '@/components/common/StatusBadge.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import DetailEditToolbar from '@/components/common/DetailEditToolbar.vue';
 import SpeciesFormModal from './SpeciesFormModal.vue';
+import BaseButton from '@/components/base/BaseButton.vue';
+import BaseTable from '@/components/base/BaseTable.vue';
 
 const route = useRoute();
 const speciesStore = useSpeciesStore();
@@ -41,7 +43,7 @@ watch(() => route.params.id, sync);
   </div>
   <div v-else-if="speciesStore.listError && !species" class="panel">
     <EmptyState :message="speciesStore.listError" icon="⚠️" />
-    <div class="table-empty-actions"><button type="button" class="btn btn-outline btn-sm" @click="speciesStore.fetchSpecies">다시 시도</button></div>
+    <div class="table-empty-actions"><BaseButton variant="outline" size="sm" @click="speciesStore.fetchSpecies">다시 시도</BaseButton></div>
   </div>
   <div v-else-if="species">
     <div class="page-header-row">
@@ -75,26 +77,24 @@ watch(() => route.params.id, sync);
       <div v-if="plants.length === 0" class="table-empty">
         <EmptyState message="등록된 개체가 없습니다." icon="🪴" />
       </div>
-      <div v-else class="data-table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>QR코드</th>
-              <th>닉네임</th>
-              <th>위치</th>
-              <th>상태</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="p in plants" :key="p.id" class="clickable" @click="$router.push(`/admin/plants/${p.id}`)">
-              <td><code>{{ p.qrCode }}</code></td>
-              <td>{{ p.nickname ?? '-' }}</td>
-              <td>{{ p.location?.name ?? '-' }}</td>
-              <td><StatusBadge :code="p.status.code" :label="p.status.name" /></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <BaseTable v-else>
+        <thead>
+          <tr>
+            <th>QR코드</th>
+            <th>닉네임</th>
+            <th>위치</th>
+            <th>상태</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="p in plants" :key="p.id" class="clickable" @click="$router.push(`/admin/plants/${p.id}`)">
+            <td><code>{{ p.qrCode }}</code></td>
+            <td>{{ p.nickname ?? '-' }}</td>
+            <td>{{ p.location?.name ?? '-' }}</td>
+            <td><StatusBadge :code="p.status.code" :label="p.status.name" /></td>
+          </tr>
+        </tbody>
+      </BaseTable>
     </section>
 
     <SpeciesFormModal v-if="showForm" :species="species" @close="showForm = false" @saved="showForm = false" />

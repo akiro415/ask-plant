@@ -9,6 +9,7 @@ import { extractErrorMessage } from '@/api/http';
 import type { CommonCode } from '@/types/common';
 import PageHeader from '@/components/common/PageHeader.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
+import BaseButton from '@/components/base/BaseButton.vue';
 
 const router = useRouter();
 const store = usePlantStore();
@@ -89,7 +90,7 @@ async function handleSubmit() {
   <div>
     <PageHeader title="개체 등록" subtitle="새로운 개체(QR)를 등록합니다.">
       <template #actions>
-        <button type="button" class="btn btn-outline btn-sm" @click="router.push('/admin/plants')">← 목록으로</button>
+        <BaseButton variant="outline" size="sm" @click="router.push('/admin/plants')">← 목록으로</BaseButton>
       </template>
     </PageHeader>
 
@@ -99,7 +100,7 @@ async function handleSubmit() {
 
     <div v-else-if="optionsError" class="panel">
       <EmptyState :message="optionsError" icon="⚠️" />
-      <div class="form-status-actions"><button type="button" class="btn btn-outline btn-sm" @click="loadOptions">다시 시도</button></div>
+      <div class="form-status-actions"><BaseButton variant="outline" size="sm" @click="loadOptions">다시 시도</BaseButton></div>
     </div>
 
     <form v-else class="panel create-form" @submit.prevent="handleSubmit">
@@ -159,10 +160,10 @@ async function handleSubmit() {
       <p v-if="store.createError" class="form-error">{{ store.createError }}</p>
 
       <div class="form-actions">
-        <button type="button" class="btn btn-ghost" @click="router.push('/admin/plants')">취소</button>
-        <button type="submit" class="btn btn-primary" :disabled="!canSubmit">
+        <BaseButton variant="ghost" @click="router.push('/admin/plants')">취소</BaseButton>
+        <BaseButton type="submit" variant="primary" :disabled="!canSubmit">
           {{ store.createLoading ? '등록 중...' : '등록' }}
-        </button>
+        </BaseButton>
       </div>
     </form>
   </div>
@@ -232,15 +233,6 @@ async function handleSubmit() {
 
 .form-field textarea {
   resize: vertical;
-}
-
-.form-error {
-  margin-top: 1rem;
-  padding: 0.6rem 0.9rem;
-  border-radius: 8px;
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-  font-size: 0.85rem;
 }
 
 .form-actions {

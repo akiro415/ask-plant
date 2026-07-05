@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
-import { RouterLink } from 'vue-router';
 import { useQrStore } from '@/stores/qr';
 import PageHeader from '@/components/common/PageHeader.vue';
 import StatusBadge from '@/components/common/StatusBadge.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
+import BaseButton from '@/components/base/BaseButton.vue';
+import BaseTable from '@/components/base/BaseTable.vue';
 import { placeholderQr } from '@/utils/placeholder';
 
 const store = useQrStore();
@@ -23,8 +24,8 @@ onMounted(() => {
   <div>
     <PageHeader title="QR관리" subtitle="개체별 QR코드를 조회하고 라벨을 미리봅니다.">
       <template #actions>
-        <RouterLink to="/admin/plants/new" class="btn btn-outline">+ 개체 등록 (QR 자동발급)</RouterLink>
-        <button type="button" class="btn btn-primary" disabled title="라벨 일괄 인쇄 API는 아직 구현되지 않았습니다">라벨 일괄 인쇄</button>
+        <BaseButton variant="outline" to="/admin/plants/new">+ 개체 등록 (QR 자동발급)</BaseButton>
+        <BaseButton variant="primary" disabled title="라벨 일괄 인쇄 API는 아직 구현되지 않았습니다">라벨 일괄 인쇄</BaseButton>
       </template>
     </PageHeader>
 
@@ -43,40 +44,42 @@ onMounted(() => {
     </div>
     <div v-else-if="store.listError" class="panel">
       <EmptyState :message="store.listError" icon="⚠️" />
-      <div class="table-empty-actions"><button type="button" class="btn btn-outline btn-sm" @click="store.fetchQrList">다시 시도</button></div>
+      <div class="table-empty-actions"><BaseButton variant="outline" size="sm" @click="store.fetchQrList">다시 시도</BaseButton></div>
     </div>
     <div v-else class="qr-grid">
       <div class="panel qr-list-panel">
         <div v-if="store.filtered.length === 0" class="table-empty">
           <EmptyState message="등록된 개체가 없습니다." icon="🔗" />
         </div>
-        <div v-else class="data-table-wrapper">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>QR코드</th>
-                <th>품종</th>
-                <th>상태</th>
-                <th colspan="2">액션</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="item in store.filtered"
-                :key="item.plantId"
-                class="clickable"
-                :class="{ selected: item.plantId === store.selectedId }"
-                @click="store.selectPlant(item.plantId)"
-              >
-                <td><code>{{ item.qrCode }}</code></td>
-                <td>{{ item.speciesDisplayName }}</td>
-                <td><StatusBadge :code="item.status.code" :label="item.status.name" /></td>
-                <td><button type="button" class="btn btn-outline btn-sm" @click.stop="store.selectPlant(item.plantId)">라벨</button></td>
-                <td><RouterLink :to="`/admin/qr/${item.plantId}`" class="btn btn-outline btn-sm" @click.stop>상세</RouterLink></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <BaseTable v-else>
+          <thead>
+            <tr>
+              <th>QR코드</th>
+              <th>품종</th>
+              <th>상태</th>
+              <th colspan="2" class="col-actions">액션</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="item in store.filtered"
+              :key="item.plantId"
+              class="clickable"
+              :class="{ selected: item.plantId === store.selectedId }"
+              @click="store.selectPlant(item.plantId)"
+            >
+              <td><code>{{ item.qrCode }}</code></td>
+              <td>{{ item.speciesDisplayName }}</td>
+              <td><StatusBadge :code="item.status.code" :label="item.status.name" /></td>
+              <td class="col-actions" @click.stop>
+                <BaseButton variant="outline" size="sm" @click="store.selectPlant(item.plantId)">라벨</BaseButton>
+              </td>
+              <td class="col-actions" @click.stop>
+                <BaseButton variant="outline" size="sm" :to="`/admin/qr/${item.plantId}`">상세</BaseButton>
+              </td>
+            </tr>
+          </tbody>
+        </BaseTable>
       </div>
 
       <div class="panel qr-preview-panel">
@@ -94,9 +97,9 @@ onMounted(() => {
           <div class="qr-label-name">{{ store.preview.speciesDisplayName }}</div>
           <div v-if="store.preview.nickname" class="qr-label-sub">{{ store.preview.nickname }}</div>
           <StatusBadge :code="store.preview.status.code" :label="store.preview.status.name" />
-          <RouterLink :to="`/admin/plants/${store.preview.plantId}`" class="btn btn-outline btn-sm">개체 상세</RouterLink>
-          <RouterLink :to="store.preview.publicPath" class="btn btn-outline btn-sm" target="_blank">공개 페이지</RouterLink>
-          <button type="button" class="btn btn-primary btn-sm" disabled title="라벨 인쇄 API는 아직 구현되지 않았습니다">인쇄하기</button>
+          <BaseButton variant="outline" size="sm" :to="`/admin/plants/${store.preview.plantId}`">개체 상세</BaseButton>
+          <BaseButton variant="outline" size="sm" :to="store.preview.publicPath" target="_blank">공개 페이지</BaseButton>
+          <BaseButton variant="primary" size="sm" disabled title="라벨 인쇄 API는 아직 구현되지 않았습니다">인쇄하기</BaseButton>
           <div v-if="store.publicLoading" class="qr-public-status">공개 조회 확인 중...</div>
           <div v-else-if="store.publicPreview" class="qr-public-status qr-public-ok">공개 API 조회 성공 (판매가 {{ store.publicPreview.sellingPrice ?? '미정' }})</div>
           <div v-else-if="store.publicError" class="qr-public-status qr-public-error">{{ store.publicError }}</div>
@@ -123,7 +126,7 @@ onMounted(() => {
 .qr-grid {
   display: grid;
   grid-template-columns: 1fr 280px;
-  gap: 1.25rem;
+  gap: var(--space-5);
   align-items: start;
 }
 
@@ -133,23 +136,23 @@ onMounted(() => {
   }
 }
 
-tr.selected {
-  background: var(--color-primary-lighter);
+:deep(tr.selected) {
+  background: var(--color-primary-soft);
 }
 
 .qr-preview-panel {
   position: sticky;
-  top: 1rem;
+  top: var(--space-4);
 }
 
 .info-card-title {
   font-size: 0.95rem;
   font-weight: 700;
-  margin-bottom: 0.9rem;
+  margin-bottom: var(--space-3);
 }
 
 .qr-preview-loading {
-  padding: 0.5rem 0;
+  padding: var(--space-2) 0;
 }
 
 .qr-label-card {
@@ -157,10 +160,10 @@ tr.selected {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 0.4rem;
-  padding: 1rem;
+  gap: var(--space-2);
+  padding: var(--space-4);
   border: 1px dashed var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
 }
 
 .qr-label-image {
@@ -187,17 +190,17 @@ tr.selected {
 .qr-label-sub {
   font-size: 0.75rem;
   color: var(--color-text-muted);
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--space-1);
 }
 
 .qr-public-status {
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
   font-size: 0.72rem;
   color: var(--color-text-muted);
 }
 
 .qr-public-ok {
-  color: var(--color-success, #2e7d32);
+  color: var(--color-success);
 }
 
 .qr-public-error {
@@ -205,7 +208,6 @@ tr.selected {
 }
 
 .table-empty {
-  padding: 1rem 0;
+  padding: var(--space-4) 0;
 }
 </style>
-
