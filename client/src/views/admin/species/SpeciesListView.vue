@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSpeciesStore } from '@/stores/species';
 import { usePlantStore } from '@/stores/plant';
@@ -12,6 +12,7 @@ import TableRowActions from '@/components/common/TableRowActions.vue';
 import SpeciesFormModal from './SpeciesFormModal.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
 import BaseTable from '@/components/base/BaseTable.vue';
+import BaseAutocomplete from '@/components/base/BaseAutocomplete.vue';
 
 const store = useSpeciesStore();
 const plantStore = usePlantStore();
@@ -21,6 +22,10 @@ const router = useRouter();
 const canManage = () => auth.hasRole('ADMIN', 'STAFF');
 
 const localSearch = ref('');
+
+const categoryFilterOptions = computed(() =>
+  store.categoryOptions.map((c) => ({ value: c.code, label: c.name, keywords: c.code })),
+);
 
 onMounted(() => {
   store.fetchSpecies();
@@ -82,10 +87,16 @@ async function handleDelete(species: Species, event: Event) {
       @search="applySearch"
     >
       <template #filters>
-        <select :value="store.categoryFilter" @change="store.setCategoryFilter(($event.target as HTMLSelectElement).value)">
-          <option value="">전체 카테고리</option>
-          <option v-for="c in store.categoryOptions" :key="c.code" :value="c.code">{{ c.name }}</option>
-        </select>
+        <BaseAutocomplete
+          :model-value="store.categoryFilter"
+          variant="filter"
+          :options="categoryFilterOptions"
+          nullable
+          empty-label="전체 카테고리"
+          placeholder="카테고리"
+          min-width="140px"
+          @update:model-value="store.setCategoryFilter"
+        />
       </template>
       <template #meta>
         <span>총 {{ store.filtered.length }}건</span>

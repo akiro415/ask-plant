@@ -63,7 +63,7 @@ export function sanitizePlantUpdateForRole<T extends { ownerId?: string | null; 
   return rest as T;
 }
 
-/** PUBLIC API Plant 필터 — 공개 노출만 */
-export function publicPlantWhere(): { isPublic: true; deletedAt: null } {
-  return { isPublic: true, deletedAt: null };
+/** PUBLIC API Plant 필터 — 공개 노출 + 판매중만 */
+export function publicPlantWhere(): { isPublic: true; deletedAt: null; status: { code: 'FOR_SALE' } } {
+  return { isPublic: true, deletedAt: null, status: { code: 'FOR_SALE' } };
 }

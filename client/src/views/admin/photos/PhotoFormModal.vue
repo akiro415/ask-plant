@@ -7,6 +7,8 @@ import type { ImageType } from '@/types/image';
 import { IMAGE_TYPE_LABEL } from '@/types/image';
 import Modal from '@/components/common/Modal.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
+import BaseAutocomplete from '@/components/base/BaseAutocomplete.vue';
+import BaseSwitch from '@/components/base/BaseSwitch.vue';
 
 const props = defineProps<{ image?: ImageApiRow | null }>();
 const emit = defineEmits<{ close: []; saved: [] }>();
@@ -41,6 +43,18 @@ watch(
 
 const imageTypeOptions = Object.entries(IMAGE_TYPE_LABEL) as [ImageType, string][];
 
+const plantAutocompleteOptions = computed(() =>
+  plantStore.plants.map((p) => ({
+    value: p.id,
+    label: `${p.qrCode} · ${p.species.displayName}${p.nickname ? ` (${p.nickname})` : ''}`,
+    keywords: [p.qrCode, p.species.displayName, p.nickname ?? ''].join(' '),
+  })),
+);
+
+const imageTypeAutocompleteOptions = computed(() =>
+  imageTypeOptions.map(([value, label]) => ({ value, label })),
+);
+
 const isValid = computed(() => form.plantId.length > 0 && form.url.trim().length > 0);
 const canSubmit = computed(() => isValid.value && !store.formLoading);
 
@@ -66,15 +80,15 @@ async function handleSubmit() {
 <template>
   <Modal :title="isEdit ? '사진 수정' : '사진 등록'" @close="emit('close')">
     <form class="photo-form" @submit.prevent="handleSubmit">
-      <div v-if="!isEdit" class="form-field">
-        <label for="pf-plantId">개체 <span class="required">*</span></label>
-        <select id="pf-plantId" v-model="form.plantId" required>
-          <option v-if="plantStore.plants.length === 0" value="" disabled>등록된 개체 없음</option>
-          <option v-for="p in plantStore.plants" :key="p.id" :value="p.id">
-            {{ p.qrCode }} · {{ p.species.displayName }}{{ p.nickname ? ` (${p.nickname})` : '' }}
-          </option>
-        </select>
-      </div>
+      <BaseAutocomplete
+        v-if="!isEdit"
+        id="pf-plantId"
+        v-model="form.plantId"
+        label="개체"
+        required
+        :options="plantAutocompleteOptions"
+        placeholder="QR·품종 검색"
+      />
       <div v-else class="form-field">
         <label>개체</label>
         <input type="text" :value="`${props.image?.plant.qrCode} · ${props.image?.plant.displayName}`" disabled />
@@ -85,24 +99,14 @@ async function handleSubmit() {
         <input id="pf-url" v-model="form.url" type="text" placeholder="https://..." required />
       </div>
 
-      <div class="form-field">
-        <label for="pf-imageType">유형</label>
-        <select id="pf-imageType" v-model="form.imageType">
-          <option v-for="[value, label] in imageTypeOptions" :key="value" :value="value">{{ label }}</option>
-        </select>
-      </div>
+      <BaseAutocomplete id="pf-imageType" v-model="form.imageType" label="유형" :options="imageTypeAutocompleteOptions" placeholder="유형 선택" />
 
       <div class="form-field">
         <label for="pf-caption">설명</label>
         <input id="pf-caption" v-model="form.caption" type="text" placeholder="선택 입력" />
       </div>
 
-      <div class="form-field">
-        <label class="form-checkbox-label" for="pf-isPrimary">
-          <input id="pf-isPrimary" v-model="form.isPrimary" type="checkbox" />
-          대표사진으로 설정
-        </label>
-      </div>
+      <BaseSwitch id="pf-isPrimary" v-model="form.isPrimary" label="대표사진으로 설정" />
 
       <p v-if="store.formError" class="form-error">{{ store.formError }}</p>
     </form>
@@ -133,12 +137,6 @@ async function handleSubmit() {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-text);
-}
-
-.form-checkbox-label {
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
 }
 
 .required {

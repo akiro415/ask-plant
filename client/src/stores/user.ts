@@ -4,8 +4,10 @@ import type { AdminUser, UserRole } from '@/types/user';
 import {
   fetchUsers,
   fetchUserById as fetchUserByIdApi,
+  createUser as createUserApi,
   updateUser as updateUserApi,
   type UpdateUserPayload,
+  type CreateUserPayload,
 } from '@/api/user.api';
 import { extractErrorMessage } from '@/api/http';
 
@@ -109,6 +111,22 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  /** POST /api/v1/users */
+  async function createUser(payload: CreateUserPayload): Promise<boolean> {
+    formLoading.value = true;
+    formError.value = null;
+    try {
+      await createUserApi(payload);
+      await fetchUserList();
+      return true;
+    } catch (error) {
+      formError.value = extractErrorMessage(error, '사용자 등록에 실패했습니다');
+      return false;
+    } finally {
+      formLoading.value = false;
+    }
+  }
+
   /** PUT /api/v1/users/:id */
   async function updateUser(id: string, payload: UpdateUserPayload): Promise<boolean> {
     formLoading.value = true;
@@ -168,6 +186,7 @@ export const useUserStore = defineStore('user', () => {
     toggleSortOrder,
     fetchUserList,
     fetchUserById,
+    createUser,
     updateUser,
     toggleUserActive,
   };

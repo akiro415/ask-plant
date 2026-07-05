@@ -5,10 +5,8 @@ const nullableIsoDate = () => z.string().datetime({ message: '올바른 ISO 8601
 const nullablePrice = () => z.number().nonnegative('0 이상의 값이어야 합니다').nullable().optional();
 const nullableInt = () => z.number().int().nonnegative('0 이상의 정수여야 합니다').nullable().optional();
 
-/**
- * 개체 생성 요청 스키마 (docs/api-specification.md의 CreatePlant)
- * qrCode는 서버에서 자동 발급하므로 요청 바디에서 받지 않는다.
- */
+const lifeCycleStageEnum = z.enum(['SEED', 'SOWING', 'SEEDLING', 'ADULT', 'FOR_SALE', 'SOLD', 'PRESERVED']);
+
 export const createPlantSchema = z.object({
   speciesId: z.string().min(1, 'speciesId는 필수입니다'),
   nickname: nullableString(),
@@ -16,6 +14,9 @@ export const createPlantSchema = z.object({
   statusId: z.string().min(1, 'statusId는 필수입니다'),
   originTypeId: z.string().min(1, 'originTypeId는 필수입니다'),
   parentPlantId: nullableString(),
+  parentPlant1Id: nullableString(),
+  parentPlant2Id: nullableString(),
+  lifeCycleStage: lifeCycleStageEnum.nullable().optional(),
   purchasePrice: nullablePrice(),
   sellingPrice: nullablePrice(),
   flowerColor: nullableString(),
@@ -54,6 +55,8 @@ export const listPlantQuerySchema = z.object({
   locationId: z.string().min(1).optional(),
   status: z.string().min(1).optional(),
   originType: z.string().min(1).optional(),
+  ownerId: z.string().min(1).optional(),
+  ownerQ: z.string().trim().min(1).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   sort: z.enum(['createdAt', 'updatedAt', 'sellingPrice', 'purchaseDate']).default('createdAt'),

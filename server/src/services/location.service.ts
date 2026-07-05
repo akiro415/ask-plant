@@ -1,12 +1,18 @@
+import {
+  assertOwnerAccess,
+  ownerScopeFilter,
+} from '../lib/rbac';
 import { locationRepository, type LocationRow } from '../repositories/location.repository';
 import { NotFoundError, ValidationAppError } from '../middleware/errorHandler';
 import type { CreateLocationInput, UpdateLocationInput, ListLocationQuery } from '../schemas/location.schema';
+import type { AuthenticatedUser } from '../types/express';
 
 export interface LocationDto {
   id: string;
   code: string;
   name: string;
   description: string | null;
+  ownerId: string;
   typeId: string | null;
   parentId: string | null;
   imagePath: string | null;
@@ -26,6 +32,7 @@ function toDto(row: LocationRow): LocationDto {
     code: row.code,
     name: row.name,
     description: row.description,
+    ownerId: row.ownerId,
     typeId: row.typeId,
     parentId: row.parentId,
     imagePath: row.imagePath,
@@ -40,10 +47,13 @@ function toDto(row: LocationRow): LocationDto {
   };
 }
 
-async function assertValidParent(parentId: string, selfId?: string): Promise<void> {
+async function assertValidParent(parentId: string, ownerId: string, selfId?: string): Promise<void> {
   const parent = await locationRepository.findById(parentId);
   if (!parent) {
     throw new ValidationAppError('존재하지 않는 parentId입니다', [{ field: 'parentId', message: '유효하지 않은 상위 위치입니다' }]);
+  }
+  if (parent.ownerId !== ownerId) {
+    throw new ValidationAppError('상위 위치는 동일 소유자의 위치여야 합니다', [{ field: 'parentId', message: '소유자가 다른 위치는 상위로 지정할 수 없습니다' }]);
   }
   if (selfId) {
     if (parentId === selfId) {
@@ -56,51 +66,55 @@ async function assertValidParent(parentId: string, selfId?: string): Promise<voi
   }
 }
 
+function assertCanAccess(row: Pick<LocationRow, 'ownerId'>, user: AuthenticatedUser): void {
+  assertOwnerAccess(row.ownerId, user);
+}
+
 export const locationService = {
-  /** 쿼리 미지정 시 활성 위치 전체를 반환한다. */
-  async list(query: ListLocationQuery = { includeInactive: false }): Promise<LocationDto[]> {
+  async list(query: ListLocationQuery, user: AuthenticatedUser): Promise<LocationDto[]> {
     const rows = await locationRepository.findMany({
       q: query.q,
       parentId: query.parentId,
       typeId: query.typeId,
       includeInactive: query.includeInactive,
+      ownerId: ownerScopeFilter(user),
     });
     return rows.map(toDto);
   },
 
-  async getById(id: string): Promise<LocationDto> {
+  async getById(id: string, user: AuthenticatedUser): Promise<LocationDto> {
     const row = await locationRepository.findById(id);
     if (!row) throw new NotFoundError('위치를 찾을 수 없습니다');
+    assertCanAccess(row, user);
     return toDto(row);
   },
 
-  async create(input: CreateLocationInput): Promise<LocationDto> {
+  async create(input: CreateLocationInput, user: AuthenticatedUser): Promise<LocationDto> {
+    const ownerId = user.id;
     if (input.parentId) {
-      await assertValidParent(input.parentId);
+      await assertValidParent(input.parentId, ownerId);
     }
-    const created = await locationRepository.create(input);
+    const created = await locationRepository.create({ ...input, ownerId });
     return toDto(created);
   },
 
-  async update(id: string, input: UpdateLocationInput): Promise<LocationDto> {
+  async update(id: string, input: UpdateLocationInput, user: AuthenticatedUser): Promise<LocationDto> {
     const existing = await locationRepository.findById(id);
     if (!existing) throw new NotFoundError('위치를 찾을 수 없습니다');
+    assertCanAccess(existing, user);
 
     if (input.parentId) {
-      await assertValidParent(input.parentId, id);
+      await assertValidParent(input.parentId, existing.ownerId, id);
     }
 
     const updated = await locationRepository.update(id, input);
     return toDto(updated);
   },
 
-  /**
-   * 실제 row는 삭제하지 않고 isActive=false로만 바꾼다 — Plant.locationId, 하위 위치의 parentId FK가 절대 깨지지 않는다.
-   * 사용 중인 개체 수는 참고용으로 반환해 관리자가 영향 범위를 확인할 수 있게 한다.
-   */
-  async remove(id: string): Promise<{ deactivatedUsageCount: number }> {
+  async remove(id: string, user: AuthenticatedUser): Promise<{ deactivatedUsageCount: number }> {
     const existing = await locationRepository.findById(id);
     if (!existing) throw new NotFoundError('위치를 찾을 수 없습니다');
+    assertCanAccess(existing, user);
 
     const usageCount = await locationRepository.countPlantsUsing(id);
     await locationRepository.softDelete(id);

@@ -10,4 +10,13 @@ export const dashboardController = {
       next(error);
     }
   },
+
+  async getMySummary(req: Request, res: Response, next: NextFunction) {
+    try {
+      const summary = await dashboardService.getMySummary(req.user!);
+      res.json({ data: summary });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

@@ -2,22 +2,17 @@ import { defineStore } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import {
   fetchCommonCodes,
+  fetchCommonCodeGroups,
   createCommonCode as createCommonCodeApi,
   updateCommonCode as updateCommonCodeApi,
+  updateCommonCodeGroup as updateCommonCodeGroupApi,
   deleteCommonCode as deleteCommonCodeApi,
   type CreateCommonCodePayload,
   type UpdateCommonCodePayload,
+  type CommonCodeGroupDto,
 } from '@/api/common-code.api';
 import { extractErrorMessage } from '@/api/http';
 import type { CommonCode } from '@/types/common';
-
-/** 알려진 groupCode에 대한 한글 라벨. 목록에 없는 그룹은 groupCode를 그대로 표시한다(확장 가능). */
-const GROUP_LABELS: Record<string, string> = {
-  PLANT_STATUS: '식물 상태',
-  HISTORY_TYPE: '이력 유형',
-  LOCATION_TYPE: '위치 유형',
-  ORIGIN_TYPE: '기원(번식) 유형',
-};
 
 export interface CommonCodeGroupSummary {
   groupCode: string;
@@ -28,6 +23,7 @@ export interface CommonCodeGroupSummary {
 
 export const useCommonCodeStore = defineStore('commonCode', () => {
   const codes = ref<CommonCode[]>([]);
+  const groups = ref<CommonCodeGroupDto[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
   const loaded = ref(false);
@@ -37,6 +33,8 @@ export const useCommonCodeStore = defineStore('commonCode', () => {
 
   const formLoading = ref(false);
   const formError = ref<string | null>(null);
+  const groupFormLoading = ref(false);
+  const groupFormError = ref<string | null>(null);
   const deleteLoadingId = ref<string | null>(null);
   const deleteError = ref<string | null>(null);
 
@@ -46,25 +44,17 @@ export const useCommonCodeStore = defineStore('commonCode', () => {
     return keyword.value.length === 0 || target.toLowerCase().includes(keyword.value);
   }
 
-  /** groupCode 기준으로 묶은 그룹 목록 (전체, 검색어 적용 전). */
-  const groupSummaries = computed<CommonCodeGroupSummary[]>(() => {
-    const map = new Map<string, CommonCode[]>();
-    for (const c of codes.value) {
-      const list = map.get(c.groupCode) ?? [];
-      list.push(c);
-      map.set(c.groupCode, list);
-    }
-    return Array.from(map.entries())
-      .map(([groupCode, list]) => ({
-        groupCode,
-        label: GROUP_LABELS[groupCode] ?? groupCode,
-        totalCount: list.length,
-        activeCount: list.filter((c) => c.isActive !== false).length,
+  const groupSummaries = computed<CommonCodeGroupSummary[]>(() =>
+    groups.value
+      .map((g) => ({
+        groupCode: g.groupCode,
+        label: g.name,
+        totalCount: g.totalCount,
+        activeCount: g.activeCount,
       }))
-      .sort((a, b) => a.groupCode.localeCompare(b.groupCode));
-  });
+      .sort((a, b) => a.groupCode.localeCompare(b.groupCode)),
+  );
 
-  /** 검색어가 groupCode/label 또는 해당 그룹 소속 code/name 중 하나라도 일치하면 그룹을 노출한다. */
   const filteredGroupSummaries = computed<CommonCodeGroupSummary[]>(() => {
     if (!keyword.value) return groupSummaries.value;
     return groupSummaries.value.filter((group) => {
@@ -75,7 +65,6 @@ export const useCommonCodeStore = defineStore('commonCode', () => {
     });
   });
 
-  /** 현재 선택된 그룹에 속한 전체 코드 (검색어 적용 전, sortOrder 기준 정렬). */
   const codesInSelectedGroup = computed<CommonCode[]>(() => {
     if (!selectedGroupCode.value) return [];
     return codes.value
@@ -83,7 +72,6 @@ export const useCommonCodeStore = defineStore('commonCode', () => {
       .sort((a, b) => a.sortOrder - b.sortOrder);
   });
 
-  /** 코드 테이블에 표시되는 목록 — 선택된 그룹 + 검색어 필터 적용. */
   const filteredCodes = computed<CommonCode[]>(() => {
     if (!keyword.value) return codesInSelectedGroup.value;
     return codesInSelectedGroup.value.filter(
@@ -99,20 +87,21 @@ export const useCommonCodeStore = defineStore('commonCode', () => {
     searchKeyword.value = value;
   }
 
-  watch(filteredGroupSummaries, (groups) => {
-    if (groups.length === 0) return;
-    const stillVisible = groups.some((g) => g.groupCode === selectedGroupCode.value);
+  watch(filteredGroupSummaries, (list) => {
+    if (list.length === 0) return;
+    const stillVisible = list.some((g) => g.groupCode === selectedGroupCode.value);
     if (!stillVisible) {
-      selectedGroupCode.value = groups[0].groupCode;
+      selectedGroupCode.value = list[0].groupCode;
     }
   });
 
-  /** GET /api/v1/common-codes?includeInactive=true */
   async function fetchCodes() {
     loading.value = true;
     error.value = null;
     try {
-      codes.value = await fetchCommonCodes(undefined, true);
+      const [codeRows, groupRows] = await Promise.all([fetchCommonCodes(undefined, true), fetchCommonCodeGroups()]);
+      codes.value = codeRows;
+      groups.value = groupRows;
       loaded.value = true;
       if (!selectedGroupCode.value && groupSummaries.value.length > 0) {
         selectedGroupCode.value = groupSummaries.value[0].groupCode;
@@ -130,7 +119,6 @@ export const useCommonCodeStore = defineStore('commonCode', () => {
     }
   }
 
-  /** POST /api/v1/common-codes */
   async function createCode(payload: CreateCommonCodePayload): Promise<boolean> {
     formLoading.value = true;
     formError.value = null;
@@ -149,7 +137,6 @@ export const useCommonCodeStore = defineStore('commonCode', () => {
     }
   }
 
-  /** PUT /api/v1/common-codes/:id */
   async function updateCode(id: string, payload: UpdateCommonCodePayload): Promise<boolean> {
     formLoading.value = true;
     formError.value = null;
@@ -165,7 +152,21 @@ export const useCommonCodeStore = defineStore('commonCode', () => {
     }
   }
 
-  /** DELETE /api/v1/common-codes/:id — 서버가 isActive=false로 Soft Delete 처리한다. */
+  async function updateGroupLabel(groupCode: string, name: string): Promise<boolean> {
+    groupFormLoading.value = true;
+    groupFormError.value = null;
+    try {
+      await updateCommonCodeGroupApi(groupCode, name);
+      await fetchCodes();
+      return true;
+    } catch (e) {
+      groupFormError.value = extractErrorMessage(e, '그룹명 수정에 실패했습니다');
+      return false;
+    } finally {
+      groupFormLoading.value = false;
+    }
+  }
+
   async function deleteCode(id: string): Promise<boolean> {
     deleteLoadingId.value = id;
     deleteError.value = null;
@@ -183,6 +184,7 @@ export const useCommonCodeStore = defineStore('commonCode', () => {
 
   return {
     codes,
+    groups,
     loading,
     error,
     loaded,
@@ -194,6 +196,8 @@ export const useCommonCodeStore = defineStore('commonCode', () => {
     filteredCodes,
     formLoading,
     formError,
+    groupFormLoading,
+    groupFormError,
     deleteLoadingId,
     deleteError,
     selectGroup,
@@ -202,6 +206,7 @@ export const useCommonCodeStore = defineStore('commonCode', () => {
     ensureLoaded,
     createCode,
     updateCode,
+    updateGroupLabel,
     deleteCode,
   };
 });

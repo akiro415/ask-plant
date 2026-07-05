@@ -6,10 +6,13 @@ import { useUiStore } from '@/stores/ui';
 import { fetchSpeciesOptions, type SpeciesOption } from '@/api/species.api';
 import { fetchCommonCodes } from '@/api/common-code.api';
 import { extractErrorMessage } from '@/api/http';
+import type { LifeCycleStage } from '@/types/plant';
+import { LIFE_CYCLE_STAGE_LABEL } from '@/types/plant';
 import type { CommonCode } from '@/types/common';
 import PageHeader from '@/components/common/PageHeader.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
+import BaseAutocomplete from '@/components/base/BaseAutocomplete.vue';
 
 const router = useRouter();
 const store = usePlantStore();
@@ -46,10 +49,13 @@ async function loadOptions() {
 onMounted(loadOptions);
 
 // ── 폼 상태 — select value는 id, code는 절대 사용하지 않는다 ──
+const lifeCycleOptions = Object.entries(LIFE_CYCLE_STAGE_LABEL) as [LifeCycleStage, string][];
+
 const form = ref({
   speciesId: '',
   statusId: '',
   originTypeId: '',
+  lifeCycleStage: '' as LifeCycleStage | '',
   nickname: '',
   purchasePrice: '' as string | number,
   sellingPrice: '' as string | number,
@@ -86,6 +92,26 @@ const canSubmit = computed(
   () => isFormValid.value && !store.createLoading && speciesOptions.value.length > 0 && statusOptions.value.length > 0 && originOptions.value.length > 0,
 );
 
+const speciesAutocompleteOptions = computed(() =>
+  speciesOptions.value.map((species) => ({
+    value: species.id,
+    label: `${speciesLabel(species)}${species.category ? ` · ${species.category.name}` : ''}`,
+    keywords: [species.displayName, species.scientificName ?? '', species.category?.name ?? ''].join(' '),
+  })),
+);
+
+const statusAutocompleteOptions = computed(() =>
+  statusOptions.value.map((s) => ({ value: s.id, label: s.name, keywords: s.code })),
+);
+
+const originAutocompleteOptions = computed(() =>
+  originOptions.value.map((o) => ({ value: o.id, label: o.name, keywords: o.code })),
+);
+
+const lifeCycleAutocompleteOptions = computed(() =>
+  lifeCycleOptions.map(([code, label]) => ({ value: code, label })),
+);
+
 function speciesLabel(species: SpeciesOption): string {
   return species.scientificName ? `${species.displayName} (${species.scientificName})` : species.displayName;
 }
@@ -97,6 +123,7 @@ async function handleSubmit() {
     speciesId: form.value.speciesId,
     statusId: form.value.statusId,
     originTypeId: form.value.originTypeId,
+    lifeCycleStage: form.value.lifeCycleStage || null,
     nickname: toNullableString(form.value.nickname),
     purchasePrice: toNullableNumber(form.value.purchasePrice),
     sellingPrice: toNullableNumber(form.value.sellingPrice),
@@ -137,31 +164,42 @@ async function handleSubmit() {
 
     <form v-else class="panel create-form" @submit.prevent="handleSubmit">
       <div class="form-grid">
-        <div class="form-field">
-          <label for="speciesId">품종 <span class="required">*</span></label>
-          <select id="speciesId" v-model="form.speciesId" :disabled="speciesOptions.length === 0" required>
-            <option value="" disabled>{{ speciesOptions.length === 0 ? '등록된 품종이 없습니다' : '품종을 선택하세요' }}</option>
-            <option v-for="species in speciesOptions" :key="species.id" :value="species.id">
-              {{ speciesLabel(species) }}{{ species.category ? ` · ${species.category.name}` : '' }}
-            </option>
-          </select>
-        </div>
-
-        <div class="form-field">
-          <label for="statusId">상태 <span class="required">*</span></label>
-          <select id="statusId" v-model="form.statusId" :disabled="statusOptions.length === 0" required>
-            <option value="" disabled>{{ statusOptions.length === 0 ? '선택 가능한 상태가 없습니다' : '상태를 선택하세요' }}</option>
-            <option v-for="status in statusOptions" :key="status.id" :value="status.id">{{ status.name }}</option>
-          </select>
-        </div>
-
-        <div class="form-field">
-          <label for="originTypeId">기원(번식방법) <span class="required">*</span></label>
-          <select id="originTypeId" v-model="form.originTypeId" :disabled="originOptions.length === 0" required>
-            <option value="" disabled>{{ originOptions.length === 0 ? '선택 가능한 기원이 없습니다' : '기원을 선택하세요' }}</option>
-            <option v-for="origin in originOptions" :key="origin.id" :value="origin.id">{{ origin.name }}</option>
-          </select>
-        </div>
+        <BaseAutocomplete
+          id="speciesId"
+          v-model="form.speciesId"
+          label="품종"
+          required
+          :disabled="speciesOptions.length === 0"
+          :options="speciesAutocompleteOptions"
+          placeholder="품종 검색"
+        />
+        <BaseAutocomplete
+          id="statusId"
+          v-model="form.statusId"
+          label="상태"
+          required
+          :disabled="statusOptions.length === 0"
+          :options="statusAutocompleteOptions"
+          placeholder="상태 검색"
+        />
+        <BaseAutocomplete
+          id="originTypeId"
+          v-model="form.originTypeId"
+          label="기원(번식방법)"
+          required
+          :disabled="originOptions.length === 0"
+          :options="originAutocompleteOptions"
+          placeholder="기원 검색"
+        />
+        <BaseAutocomplete
+          id="lifeCycleStage"
+          v-model="form.lifeCycleStage"
+          label="생애주기"
+          :options="lifeCycleAutocompleteOptions"
+          nullable
+          empty-label="미지정"
+          placeholder="생애주기"
+        />
 
         <div class="form-field">
           <label for="nickname">닉네임</label>

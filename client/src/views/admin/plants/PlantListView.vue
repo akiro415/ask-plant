@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { usePlantStore } from '@/stores/plant';
+import { useAuthStore } from '@/stores/auth';
 import { useUiStore } from '@/stores/ui';
 import PageHeader from '@/components/common/PageHeader.vue';
 import FilterBar from '@/components/common/FilterBar.vue';
@@ -10,23 +11,43 @@ import Pagination from '@/components/common/Pagination.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
 import BaseTable from '@/components/base/BaseTable.vue';
+import BaseAutocomplete from '@/components/base/BaseAutocomplete.vue';
 import { formatCurrency, formatDate } from '@/utils/format';
 
 const store = usePlantStore();
+const auth = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 const ui = useUiStore();
 
 const localSearch = ref('');
+const localOwnerSearch = ref('');
+const showOwnerColumn = auth.hasRole('ADMIN', 'STAFF');
+
+const statusFilterOptions = computed(() =>
+  store.statusOptions.map((s) => ({ value: s.code, label: s.name, keywords: s.code })),
+);
+
+const categoryFilterOptions = computed(() =>
+  store.categoryOptions.map((c) => ({ value: c.code, label: c.name, keywords: c.code })),
+);
 
 onMounted(() => {
   ui.setBreadcrumbExtra(null);
+  const statusFromQuery = typeof route.query.status === 'string' ? route.query.status : '';
+  if (statusFromQuery) store.statusFilter = statusFromQuery;
   store.fetchPlants();
   store.ensureFilterOptionsLoaded();
   localSearch.value = store.searchQuery;
+  localOwnerSearch.value = store.ownerSearchQuery;
 });
 
 function applySearch() {
   store.setSearch(localSearch.value.trim());
+}
+
+function applyOwnerSearch() {
+  store.setOwnerSearch(localOwnerSearch.value.trim());
 }
 
 function goDetail(id: string) {
@@ -52,14 +73,33 @@ function goCreate() {
       @search="applySearch"
     >
       <template #filters>
-        <select :value="store.statusFilter" @change="store.setStatusFilter(($event.target as HTMLSelectElement).value)">
-          <option value="">전체 상태</option>
-          <option v-for="s in store.statusOptions" :key="s.code" :value="s.code">{{ s.name }}</option>
-        </select>
-        <select :value="store.categoryFilter" @change="store.setCategoryFilter(($event.target as HTMLSelectElement).value)">
-          <option value="">전체 카테고리</option>
-          <option v-for="c in store.categoryOptions" :key="c.code" :value="c.code">{{ c.name }}</option>
-        </select>
+        <input
+          v-if="showOwnerColumn"
+          v-model="localOwnerSearch"
+          type="search"
+          placeholder="소유자 검색"
+          @keydown.enter="applyOwnerSearch"
+        />
+        <BaseAutocomplete
+          :model-value="store.statusFilter"
+          variant="filter"
+          :options="statusFilterOptions"
+          nullable
+          empty-label="전체 상태"
+          placeholder="상태"
+          min-width="130px"
+          @update:model-value="store.setStatusFilter"
+        />
+        <BaseAutocomplete
+          :model-value="store.categoryFilter"
+          variant="filter"
+          :options="categoryFilterOptions"
+          nullable
+          empty-label="전체 카테고리"
+          placeholder="카테고리"
+          min-width="140px"
+          @update:model-value="store.setCategoryFilter"
+        />
       </template>
       <template #meta>
         <span>총 {{ store.total }}건</span>
@@ -85,6 +125,7 @@ function goCreate() {
               <th>QR코드</th>
               <th>품종</th>
               <th>닉네임</th>
+              <th v-if="showOwnerColumn">소유자</th>
               <th>위치</th>
               <th>상태</th>
               <th>기원</th>
@@ -109,6 +150,10 @@ function goCreate() {
                 <div class="cell-species-sci">{{ plant.species.scientificName ?? '학명 미상' }}</div>
               </td>
               <td>{{ plant.nickname ?? '-' }}</td>
+              <td v-if="showOwnerColumn">
+                <div>{{ plant.owner?.name ?? '-' }}</div>
+                <div class="cell-species-sci">{{ plant.owner?.email ?? '' }}</div>
+              </td>
               <td>{{ plant.location?.name ?? '-' }}</td>
               <td><StatusBadge :code="plant.status.code" :label="plant.status.name" /></td>
               <td>{{ plant.originType.name }}</td>

@@ -94,7 +94,12 @@ function onSearch() {
   white-space: nowrap;
 }
 
-.filter-bar__filters :deep(select) {
+.filter-bar__filters :deep(.base-autocomplete) {
+  min-width: 140px;
+}
+
+.filter-bar__filters :deep(select),
+.filter-bar__filters :deep(.base-autocomplete__input) {
   height: var(--input-height-md);
   padding: 0 var(--space-3);
   border: 1px solid var(--color-border);

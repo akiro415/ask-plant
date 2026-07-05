@@ -4,6 +4,7 @@ import { useCommonCodeStore } from '@/stores/common-code';
 import type { CommonCode } from '@/types/common';
 import Modal from '@/components/common/Modal.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
+import BaseSwitch from '@/components/base/BaseSwitch.vue';
 
 const props = defineProps<{
   code: CommonCode | null;
@@ -76,12 +77,7 @@ async function handleSubmit() {
         <label>정렬순서</label>
         <input v-model="form.sortOrder" type="number" min="0" step="1" placeholder="0" />
       </div>
-      <div class="form-field form-field--inline">
-        <label>
-          <input v-model="form.isActive" type="checkbox" />
-          사용
-        </label>
-      </div>
+      <BaseSwitch id="cc-isActive" v-model="form.isActive" label="사용" />
       <p v-if="store.formError" class="form-error form-error--block">{{ store.formError }}</p>
       <div class="form-actions">
         <BaseButton variant="ghost" type="button" @click="emit('close')">취소</BaseButton>
@@ -119,13 +115,6 @@ async function handleSubmit() {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   font-size: 0.875rem;
-}
-
-.form-field--inline label {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-weight: 500;
 }
 
 .form-actions {

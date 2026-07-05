@@ -24,8 +24,10 @@ export interface PlantSummaryDto {
   nickname: string | null;
   species: { id: string; displayName: string; scientificName: string | null; koreanName: string | null; genus: string | null };
   location: { id: string; code: string; name: string } | null;
+  owner: { id: string; name: string; email: string } | null;
   status: CommonCodeDto;
   originType: CommonCodeDto;
+  lifeCycleStage: string | null;
   sellingPrice: number | null;
   flowerColor: string | null;
   purchaseHeadCount: number | null;
@@ -47,7 +49,8 @@ export interface PlantDetailDto extends PlantSummaryDto {
   memo: string | null;
   soldAt: Date | null;
   parentPlant: { id: string; qrCode: string; displayName: string } | null;
-  owner: { id: string; name: string; email: string } | null;
+  parentPlant1: { id: string; qrCode: string; displayName: string } | null;
+  parentPlant2: { id: string; qrCode: string; displayName: string } | null;
   isPublic: boolean;
   images: { id: string; url: string; imageType: string; isPrimary: boolean }[];
   recentHistories: {
@@ -103,6 +106,13 @@ function mapCommerceFields(row: PlantListRow | PlantDetailRow) {
   };
 }
 
+function mapParent(
+  row: { id: string; qrCode: string; species: { displayName: string } } | null | undefined,
+): { id: string; qrCode: string; displayName: string } | null {
+  if (!row) return null;
+  return { id: row.id, qrCode: row.qrCode, displayName: row.species.displayName };
+}
+
 function toSummaryDto(row: PlantListRow): PlantSummaryDto {
   return {
     id: row.id,
@@ -116,8 +126,10 @@ function toSummaryDto(row: PlantListRow): PlantSummaryDto {
       genus: row.species.genus,
     },
     location: row.location ? { id: row.location.id, code: row.location.code, name: row.location.name } : null,
+    owner: row.owner ? { id: row.owner.id, name: row.owner.name, email: row.owner.email } : null,
     status: { code: row.status.code, name: row.status.name },
     originType: { code: row.originType.code, name: row.originType.name },
+    lifeCycleStage: row.lifeCycleStage,
     sellingPrice: toDecimalNumber(asCommerceRow(row).sellingPrice ?? asCommerceRow(row).totalSellingPrice),
     ...mapCommerceFields(row),
     primaryImageUrl: row.images[0]?.url ?? null,
@@ -140,8 +152,10 @@ function toDetailDto(row: PlantDetailRow): PlantDetailDto {
       genus: row.species.genus,
     },
     location: row.location ? { id: row.location.id, code: row.location.code, name: row.location.name } : null,
+    owner: row.owner ? { id: row.owner.id, name: row.owner.name, email: row.owner.email } : null,
     status: { code: row.status.code, name: row.status.name },
     originType: { code: row.originType.code, name: row.originType.name },
+    lifeCycleStage: row.lifeCycleStage,
     sellingPrice: toDecimalNumber(asCommerceRow(row).sellingPrice ?? asCommerceRow(row).totalSellingPrice),
     ...mapCommerceFields(row),
     primaryImageUrl: primaryImage?.url ?? null,
@@ -152,10 +166,9 @@ function toDetailDto(row: PlantDetailRow): PlantDetailDto {
     potSize: row.potSize,
     memo: row.memo,
     soldAt: row.soldAt,
-    parentPlant: row.parentPlant
-      ? { id: row.parentPlant.id, qrCode: row.parentPlant.qrCode, displayName: row.parentPlant.species.displayName }
-      : null,
-    owner: row.owner ? { id: row.owner.id, name: row.owner.name, email: row.owner.email } : null,
+    parentPlant: mapParent(row.parentPlant),
+    parentPlant1: mapParent(row.parentPlant1 ?? row.parentPlant),
+    parentPlant2: mapParent(row.parentPlant2),
     isPublic: row.isPublic,
     images: row.images.map((image) => ({
       id: image.id,
@@ -176,13 +189,15 @@ function toDetailDto(row: PlantDetailRow): PlantDetailDto {
 
 export const plantService = {
   async list(query: ListPlantQuery, requestUser: AuthenticatedUser): Promise<{ items: PlantSummaryDto[]; meta: PlantListMeta }> {
+    const scopedOwnerId = ownerScopeFilter(requestUser);
     const filters = {
       q: query.q,
       speciesId: query.speciesId,
       locationId: query.locationId,
       statusCode: query.status,
       originTypeCode: query.originType,
-      ownerId: ownerScopeFilter(requestUser),
+      ownerId: scopedOwnerId ?? query.ownerId,
+      ownerQ: scopedOwnerId ? undefined : query.ownerQ,
     };
     const pagination = { page: query.page, limit: query.limit, sort: query.sort, order: query.order };
 

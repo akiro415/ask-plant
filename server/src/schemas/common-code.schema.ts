@@ -18,6 +18,11 @@ export const updateCommonCodeSchema = createCommonCodeSchema.partial().refine((d
   message: '수정할 필드가 하나 이상 필요합니다',
 });
 
+export const updateCommonCodeGroupSchema = z.object({
+  name: z.string().trim().min(1, '그룹명은 필수입니다'),
+});
+
 export type ListCommonCodeQuery = z.infer<typeof listCommonCodeQuerySchema>;
 export type CreateCommonCodeInput = z.infer<typeof createCommonCodeSchema>;
 export type UpdateCommonCodeInput = z.infer<typeof updateCommonCodeSchema>;
+export type UpdateCommonCodeGroupInput = z.infer<typeof updateCommonCodeGroupSchema>;

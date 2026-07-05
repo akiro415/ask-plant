@@ -6,7 +6,7 @@ export const locationController = {
   async getAll(req: Request, res: Response, next: NextFunction) {
     try {
       const query = listLocationQuerySchema.parse(req.query);
-      const items = await locationService.list(query);
+      const items = await locationService.list(query, req.user!);
       res.json({ data: items });
     } catch (error) {
       next(error);
@@ -15,7 +15,7 @@ export const locationController = {
 
   async getById(req: Request, res: Response, next: NextFunction) {
     try {
-      const location = await locationService.getById(String(req.params.id));
+      const location = await locationService.getById(String(req.params.id), req.user!);
       res.json({ data: location });
     } catch (error) {
       next(error);
@@ -25,7 +25,7 @@ export const locationController = {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const data = createLocationSchema.parse(req.body);
-      const location = await locationService.create(data);
+      const location = await locationService.create(data, req.user!);
       res.status(201).json({ data: location });
     } catch (error) {
       next(error);
@@ -35,7 +35,7 @@ export const locationController = {
   async update(req: Request, res: Response, next: NextFunction) {
     try {
       const data = updateLocationSchema.parse(req.body);
-      const location = await locationService.update(String(req.params.id), data);
+      const location = await locationService.update(String(req.params.id), data, req.user!);
       res.json({ data: location });
     } catch (error) {
       next(error);
@@ -44,7 +44,7 @@ export const locationController = {
 
   async remove(req: Request, res: Response, next: NextFunction) {
     try {
-      await locationService.remove(String(req.params.id));
+      await locationService.remove(String(req.params.id), req.user!);
       res.status(204).send();
     } catch (error) {
       next(error);

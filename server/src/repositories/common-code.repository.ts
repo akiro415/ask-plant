@@ -60,4 +60,39 @@ export const commonCodeRepository = {
       data: { isActive: false },
     });
   },
+
+  async findDuplicate(groupCode: string, code: string, excludeId?: string) {
+    return prisma.commonCode.findFirst({
+      where: {
+        groupCode,
+        code,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+    });
+  },
+
+  async findDistinctGroupCodes(): Promise<string[]> {
+    const rows = await prisma.commonCode.findMany({
+      select: { groupCode: true },
+      distinct: ['groupCode'],
+      orderBy: { groupCode: 'asc' },
+    });
+    return rows.map((r) => r.groupCode);
+  },
+
+  async findAllGroups() {
+    return prisma.commonCodeGroup.findMany({ orderBy: { groupCode: 'asc' } });
+  },
+
+  async upsertGroup(groupCode: string, name: string) {
+    return prisma.commonCodeGroup.upsert({
+      where: { groupCode },
+      create: { groupCode, name },
+      update: { name },
+    });
+  },
+
+  async findGroupByCode(groupCode: string) {
+    return prisma.commonCodeGroup.findUnique({ where: { groupCode } });
+  },
 };

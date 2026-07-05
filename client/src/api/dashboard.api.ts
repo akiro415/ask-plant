@@ -15,6 +15,14 @@ export interface DashboardRecentPlantDto {
   createdAt: string;
 }
 
+export interface DashboardRecentUserDto {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+}
+
 export interface DashboardUserStatDto {
   userId: string;
   name: string;
@@ -25,24 +33,46 @@ export interface DashboardUserStatDto {
   lastActivityAt: string | null;
 }
 
-/** GET /api/v1/dashboard 응답 */
 export interface DashboardSummaryDto {
   plantCount: number;
   speciesCount: number;
   locationCount: number;
+  userCount?: number;
+  forSaleCount?: number;
+  reservedCount?: number;
+  soldCount?: number;
   recentPlants: DashboardRecentPlantDto[];
+  recentUsers?: DashboardRecentUserDto[];
   statusDistribution: DashboardStatusCountDto[];
   customerCount?: number;
   nonStaffUserCount?: number;
   userStats?: DashboardUserStatDto[];
 }
 
+export interface CustomerDashboardDto {
+  plantCount: number;
+  locationCount: number;
+  forSaleCount: number;
+  reservedCount: number;
+  soldCount: number;
+  statusDistribution: DashboardStatusCountDto[];
+  recentPlants: DashboardRecentPlantDto[];
+}
+
 interface DashboardSummaryResponse {
   data: DashboardSummaryDto;
 }
 
-/** GET /api/v1/dashboard — plant/species/location 스토어를 각각 로드해 집계하던 방식을 대체하는 단일 호출. */
+interface CustomerDashboardResponse {
+  data: CustomerDashboardDto;
+}
+
 export async function fetchDashboardSummary(): Promise<DashboardSummaryDto> {
   const { data } = await httpClient.get<DashboardSummaryResponse>('/dashboard');
+  return data.data;
+}
+
+export async function fetchMyDashboard(): Promise<CustomerDashboardDto> {
+  const { data } = await httpClient.get<CustomerDashboardResponse>('/dashboard/me');
   return data.data;
 }

@@ -105,7 +105,7 @@ async function seedSpecies() {
   console.log(`[4/9] Species ${SPECIES_SEEDS.length}건 완료`);
 }
 
-async function seedLocations() {
+async function seedLocations(adminId: string) {
   console.log('[5/9] PlantLocation(테스트 위치) 생성/갱신 중...');
   for (const seed of LOCATION_SEEDS) {
     const type = await prisma.commonCode.findUnique({
@@ -116,8 +116,8 @@ async function seedLocations() {
     }
 
     await prisma.plantLocation.upsert({
-      where: { code: seed.code },
-      create: { code: seed.code, name: seed.name, typeId: type.id },
+      where: { ownerId_code: { ownerId: adminId, code: seed.code } },
+      create: { code: seed.code, name: seed.name, typeId: type.id, ownerId: adminId },
       update: { name: seed.name, typeId: type.id },
     });
     console.log(`  - PlantLocation[${seed.code}] "${seed.name}" OK`);
@@ -170,7 +170,9 @@ async function seedPlants(ownerId: string) {
       throw new Error(`Species(${seed.speciesId})가 없습니다. seedSpecies()가 먼저 실행되어야 합니다.`);
     }
 
-    const location = await prisma.plantLocation.findUnique({ where: { code: seed.locationCode } });
+    const location = await prisma.plantLocation.findUnique({
+      where: { ownerId_code: { ownerId, code: seed.locationCode } },
+    });
 
     // 이미 생성된 Plant라면 기존 qrCode를 재사용해 재실행 시 QrSequence가 불필요하게 증가하지 않도록 한다.
     const existing = await prisma.plant.findUnique({ where: { id: seed.id }, select: { qrCode: true } });
@@ -346,7 +348,7 @@ async function main() {
   await seedCommonCodes();
   const { adminId } = await seedUsers();
   await seedSpecies();
-  await seedLocations();
+  await seedLocations(adminId);
   await seedPlants(adminId);
   await seedImages();
   await seedHistories(adminId);

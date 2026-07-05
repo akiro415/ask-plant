@@ -24,8 +24,10 @@ interface ApiPlantSummary {
   nickname: string | null;
   species: ApiPlantSpeciesRef;
   location: { id: string; code: string; name: string } | null;
+  owner: { id: string; name: string; email: string } | null;
   status: ApiCommonCodeRef;
   originType: ApiCommonCodeRef;
+  lifeCycleStage: string | null;
   sellingPrice: number | null;
   flowerColor: string | null;
   purchaseHeadCount: number | null;
@@ -46,6 +48,8 @@ interface ApiPlantDetail extends ApiPlantSummary {
   potSize: string | null;
   memo: string | null;
   parentPlant: { id: string; qrCode: string; displayName: string } | null;
+  parentPlant1: { id: string; qrCode: string; displayName: string } | null;
+  parentPlant2: { id: string; qrCode: string; displayName: string } | null;
   owner: { id: string; name: string; email: string } | null;
   isPublic: boolean;
   images: { id: string; url: string; imageType: string; isPrimary: boolean }[];
@@ -81,6 +85,8 @@ export interface ListPlantsParams {
   originType?: string;
   speciesId?: string;
   locationId?: string;
+  ownerId?: string;
+  ownerQ?: string;
   page?: number;
   limit?: number;
   sort?: 'createdAt' | 'updatedAt' | 'sellingPrice' | 'purchaseDate';
@@ -103,6 +109,9 @@ export interface CreatePlantPayload {
   totalSellingPrice?: number | null;
   purchaseVendor?: string | null;
   purchaseFarm?: string | null;
+  parentPlant1Id?: string | null;
+  parentPlant2Id?: string | null;
+  lifeCycleStage?: string | null;
   ownerId?: string | null;
   isPublic?: boolean;
   purchaseDate?: string | null;
@@ -134,8 +143,10 @@ function toSummary(dto: ApiPlantSummary): PlantSummary {
       category: null,
     },
     location: dto.location ? { id: dto.location.id, name: dto.location.name } : null,
+    owner: dto.owner,
     status: toCommonCode(dto.status, 'PLANT_STATUS'),
     originType: toCommonCode(dto.originType, 'ORIGIN_TYPE'),
+    lifeCycleStage: dto.lifeCycleStage as PlantSummary['lifeCycleStage'],
     sellingPrice: dto.sellingPrice,
     flowerColor: dto.flowerColor,
     purchaseHeadCount: dto.purchaseHeadCount,
@@ -189,6 +200,8 @@ function toDetail(dto: ApiPlantDetail): PlantDetail {
     potSize: dto.potSize,
     memo: dto.memo,
     parentPlant: dto.parentPlant,
+    parentPlant1: dto.parentPlant1 ?? dto.parentPlant,
+    parentPlant2: dto.parentPlant2,
     owner: dto.owner,
     isPublic: dto.isPublic,
     // 자식 개체 목록/개수를 내려주는 API가 아직 없어 0으로 고정한다.

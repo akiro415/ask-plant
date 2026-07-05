@@ -33,6 +33,17 @@ model CommonCode {
 }
 
 // ─────────────────────────────────────────────
+// 공통코드 그룹 표시명 (groupCode는 변경 불가, name만 관리)
+// ─────────────────────────────────────────────
+model CommonCodeGroup {
+  groupCode String   @id
+  name      String
+  updatedAt DateTime @updatedAt
+
+  @@map("common_code_groups")
+}
+
+// ─────────────────────────────────────────────
 // QR 일련번호 — 접두사별 원자적 증가
 //
 // QR 번호 규칙: {PREFIX}-{SEQUENCE(6자리)}
@@ -88,9 +99,11 @@ model User {
   ownedPlants    Plant[]        @relation("PlantOwner")
   ownedImages    PlantImage[]   @relation("ImageOwner")
   ownedHistories PlantHistory[] @relation("HistoryOwner")
+  ownedLocations PlantLocation[] @relation("LocationOwner")
   cartItems      Cart[]
   plantHistories PlantHistory[] @relation("HistoryPerformer")
   orderRequests  OrderRequest[]
+  collectorProfile CollectorProfile?
 
   @@map("users")
 }
@@ -99,6 +112,28 @@ enum UserRole {
   ADMIN
   STAFF
   CUSTOMER
+}
+
+// ─────────────────────────────────────────────
+// 컬렉터 프로필 (User 1:1)
+// ─────────────────────────────────────────────
+model CollectorProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  nickname          String?
+  bio               String?
+  avatarUrl         String?
+  region            String?
+  snsUrl            String?
+  bankAccountInfo   String?
+  bankAccountHolder String?
+  bankPublic        Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("collector_profiles")
 }
 
 // ─────────────────────────────────────────────
@@ -164,9 +199,10 @@ enum TaxonRank {
 // ─────────────────────────────────────────────
 model PlantLocation {
   id          String   @id @default(cuid())
-  code        String   @unique
+  code        String
   name        String
   description String?
+  ownerId     String
   typeId      String?
   parentId    String?
   imagePath   String?
@@ -177,6 +213,7 @@ model PlantLocation {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  owner    User            @relation("LocationOwner", fields: [ownerId], references: [id])
   type     CommonCode?     @relation("LocationType", fields: [typeId], references: [id])
   parent   PlantLocation?  @relation("LocationHierarchy", fields: [parentId], references: [id])
   children PlantLocation[] @relation("LocationHierarchy")
@@ -185,9 +222,21 @@ model PlantLocation {
   historiesFrom PlantHistory[] @relation("HistoryFromLocation")
   historiesTo   PlantHistory[] @relation("HistoryToLocation")
 
+  @@unique([ownerId, code])
+  @@index([ownerId])
   @@index([parentId])
   @@index([typeId])
   @@map("plant_locations")
+}
+
+enum LifeCycleStage {
+  SEED
+  SOWING
+  SEEDLING
+  ADULT
+  FOR_SALE
+  SOLD
+  PRESERVED
 }
 
 // ─────────────────────────────────────────────
@@ -204,7 +253,10 @@ model Plant {
   locationId     String?
   ownerId        String
   isPublic       Boolean    @default(false)
+  lifeCycleStage LifeCycleStage?
   parentPlantId  String?
+  parentPlant1Id String?
+  parentPlant2Id String?
   statusId       String
   originTypeId   String
   purchasePrice     Decimal?   @db.Decimal(12, 2)
@@ -230,7 +282,11 @@ model Plant {
   location    PlantLocation? @relation(fields: [locationId], references: [id])
   owner       User?          @relation("PlantOwner", fields: [ownerId], references: [id])
   parentPlant Plant?         @relation("PlantLineage", fields: [parentPlantId], references: [id])
+  parentPlant1 Plant?        @relation("PlantParent1", fields: [parentPlant1Id], references: [id])
+  parentPlant2 Plant?        @relation("PlantParent2", fields: [parentPlant2Id], references: [id])
   childPlants Plant[]        @relation("PlantLineage")
+  childrenAsParent1 Plant[]  @relation("PlantParent1")
+  childrenAsParent2 Plant[]  @relation("PlantParent2")
   status      CommonCode     @relation("PlantStatus", fields: [statusId], references: [id])
   originType  CommonCode     @relation("OriginType", fields: [originTypeId], references: [id])
   images      PlantImage[]
@@ -242,6 +298,9 @@ model Plant {
   @@index([ownerId])
   @@index([isPublic])
   @@index([parentPlantId])
+  @@index([parentPlant1Id])
+  @@index([parentPlant2Id])
+  @@index([lifeCycleStage])
   @@index([statusId])
   @@index([originTypeId])
   @@index([deletedAt])

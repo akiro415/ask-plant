@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
 import { useAuthStore } from '@/stores/auth';
@@ -11,6 +11,7 @@ import FilterBar from '@/components/common/FilterBar.vue';
 import UserFormModal from './UserFormModal.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
 import BaseTable from '@/components/base/BaseTable.vue';
+import BaseAutocomplete from '@/components/base/BaseAutocomplete.vue';
 import TableRowActions from '@/components/common/TableRowActions.vue';
 import { formatDate } from '@/utils/format';
 
@@ -26,7 +27,18 @@ const ROLE_TONE: Record<string, string> = {
 
 const editingUser = ref<AdminUser | null>(null);
 const showForm = ref(false);
+const isCreateMode = ref(false);
 const localSearch = ref('');
+
+const roleFilterOptions = computed(() =>
+  (['ADMIN', 'STAFF', 'CUSTOMER'] as UserRole[]).map((role) => ({ value: role, label: USER_ROLE_LABEL[role] })),
+);
+
+const activeFilterOptions = [
+  { value: 'all', label: '전체 상태' },
+  { value: 'active', label: '활성' },
+  { value: 'inactive', label: '비활성' },
+];
 
 onMounted(() => {
   store.fetchUserList();
@@ -46,15 +58,23 @@ function applyRoleFilter(value: string) {
   store.setRoleFilter(value as UserRole | '');
 }
 
+function openCreate() {
+  editingUser.value = null;
+  isCreateMode.value = true;
+  showForm.value = true;
+}
+
 function openEdit(user: AdminUser, event?: Event) {
   event?.stopPropagation();
   editingUser.value = user;
+  isCreateMode.value = false;
   showForm.value = true;
 }
 
 function closeForm() {
   showForm.value = false;
   editingUser.value = null;
+  isCreateMode.value = false;
 }
 
 function goDetail(user: AdminUser) {
@@ -75,23 +95,32 @@ async function handleToggle(user: AdminUser, event: Event) {
   <div>
     <PageHeader title="사용자관리" subtitle="관리자, 직원, 고객 계정을 관리합니다.">
       <template #actions>
-        <BaseButton variant="primary" disabled title="사용자 등록 API는 아직 구현되지 않았습니다">사용자 등록</BaseButton>
+        <BaseButton variant="primary" @click="openCreate">사용자 등록</BaseButton>
       </template>
     </PageHeader>
 
     <FilterBar v-model:search-query="localSearch" search-placeholder="이름, 이메일 검색" @search="applySearch">
       <template #filters>
-        <select :value="store.roleFilter" @change="applyRoleFilter(($event.target as HTMLSelectElement).value)">
-          <option value="">전체 역할</option>
-          <option value="ADMIN">관리자</option>
-          <option value="STAFF">직원</option>
-          <option value="CUSTOMER">고객</option>
-        </select>
-        <select :value="store.activeFilter" @change="applyActiveFilter(($event.target as HTMLSelectElement).value)">
-          <option value="all">전체 상태</option>
-          <option value="active">활성</option>
-          <option value="inactive">비활성</option>
-        </select>
+        <BaseAutocomplete
+          :model-value="store.roleFilter"
+          variant="filter"
+          :options="roleFilterOptions"
+          nullable
+          empty-label="전체 역할"
+          placeholder="역할"
+          min-width="130px"
+          @update:model-value="applyRoleFilter"
+        />
+        <BaseAutocomplete
+          :model-value="store.activeFilter"
+          variant="filter"
+          :options="activeFilterOptions.slice(1)"
+          nullable
+          empty-label="전체 상태"
+          placeholder="상태"
+          min-width="120px"
+          @update:model-value="(v) => applyActiveFilter(v || 'all')"
+        />
       </template>
       <template #meta>
         <span>총 {{ store.filtered.length }}명</span>
@@ -147,7 +176,7 @@ async function handleToggle(user: AdminUser, event: Event) {
       </BaseTable>
     </div>
 
-    <UserFormModal v-if="showForm && editingUser" :user="editingUser" @close="closeForm" @saved="closeForm" />
+    <UserFormModal v-if="showForm" :user="isCreateMode ? null : editingUser" @close="closeForm" @saved="closeForm" />
   </div>
 </template>
 

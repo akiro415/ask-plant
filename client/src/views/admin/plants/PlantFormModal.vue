@@ -8,6 +8,7 @@ import type { CommonCode } from '@/types/common';
 import type { PlantLocation } from '@/types/location';
 import Modal from '@/components/common/Modal.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
+import BaseAutocomplete from '@/components/base/BaseAutocomplete.vue';
 import { extractErrorMessage } from '@/api/http';
 
 const props = defineProps<{ plant: PlantDetail }>();
@@ -101,6 +102,16 @@ watch(() => props.plant.id, syncFormFromPlant);
 const isValid = computed(() => Boolean(form.statusId && form.originTypeId));
 const canSubmit = computed(() => isValid.value && !store.updateLoading && !optionsLoading.value);
 
+const statusAutocompleteOptions = computed(() =>
+  statusOptions.map((s) => ({ value: s.id, label: s.name, keywords: s.code })),
+);
+const originAutocompleteOptions = computed(() =>
+  originOptions.map((o) => ({ value: o.id, label: o.name, keywords: o.code })),
+);
+const locationAutocompleteOptions = computed(() =>
+  locationOptions.map((loc) => ({ value: loc.id, label: loc.name, keywords: loc.code })),
+);
+
 function toNullableString(value: string): string | null {
   return value.trim() ? value.trim() : null;
 }
@@ -162,25 +173,17 @@ async function handleSubmit() {
         <input type="text" :value="plant.qrCode" disabled />
       </div>
       <div class="form-grid">
-        <div class="form-field">
-          <label for="pf-status">상태 <span class="required">*</span></label>
-          <select id="pf-status" v-model="form.statusId" required>
-            <option v-for="s in statusOptions" :key="s.id" :value="s.id">{{ s.name }}</option>
-          </select>
-        </div>
-        <div class="form-field">
-          <label for="pf-origin">기원 <span class="required">*</span></label>
-          <select id="pf-origin" v-model="form.originTypeId" required>
-            <option v-for="o in originOptions" :key="o.id" :value="o.id">{{ o.name }}</option>
-          </select>
-        </div>
-        <div class="form-field">
-          <label for="pf-location">위치</label>
-          <select id="pf-location" v-model="form.locationId">
-            <option value="">미지정</option>
-            <option v-for="loc in locationOptions" :key="loc.id" :value="loc.id">{{ loc.name }}</option>
-          </select>
-        </div>
+        <BaseAutocomplete id="pf-status" v-model="form.statusId" label="상태" required :options="statusAutocompleteOptions" placeholder="상태 검색" />
+        <BaseAutocomplete id="pf-origin" v-model="form.originTypeId" label="기원" required :options="originAutocompleteOptions" placeholder="기원 검색" />
+        <BaseAutocomplete
+          id="pf-location"
+          v-model="form.locationId"
+          label="위치"
+          :options="locationAutocompleteOptions"
+          nullable
+          empty-label="미지정"
+          placeholder="위치 검색"
+        />
         <div class="form-field">
           <label for="pf-nickname">닉네임</label>
           <input id="pf-nickname" v-model="form.nickname" type="text" />

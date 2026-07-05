@@ -16,6 +16,7 @@ import BaseButton from '@/components/base/BaseButton.vue';
 import { placeholderQr } from '@/utils/placeholder';
 import { formatCurrency, formatDate } from '@/utils/format';
 import type { PlantHistory } from '@/types/history';
+import { LIFE_CYCLE_STAGE_LABEL } from '@/types/plant';
 
 const route = useRoute();
 const router = useRouter();
@@ -183,11 +184,24 @@ watch(() => route.params.id, load);
         <section class="panel info-card">
           <h2 class="info-card-title">번식방법 · 부모개체</h2>
           <div class="info-row"><span class="info-label">기원(번식방법)</span><span class="info-value">{{ plant.originType.name }}</span></div>
+          <div v-if="plant.lifeCycleStage" class="info-row">
+            <span class="info-label">생애주기</span>
+            <span class="info-value">{{ LIFE_CYCLE_STAGE_LABEL[plant.lifeCycleStage] ?? plant.lifeCycleStage }}</span>
+          </div>
           <div class="info-row">
-            <span class="info-label">부모개체</span>
+            <span class="info-label">부모개체 1</span>
             <span class="info-value">
-              <RouterLink v-if="plant.parentPlant" :to="`/admin/plants/${plant.parentPlant.id}`">
-                {{ plant.parentPlant.qrCode }} ({{ plant.parentPlant.displayName }})
+              <RouterLink v-if="plant.parentPlant1" :to="`/admin/plants/${plant.parentPlant1.id}`">
+                {{ plant.parentPlant1.qrCode }} ({{ plant.parentPlant1.displayName }})
+              </RouterLink>
+              <span v-else>-</span>
+            </span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">부모개체 2</span>
+            <span class="info-value">
+              <RouterLink v-if="plant.parentPlant2" :to="`/admin/plants/${plant.parentPlant2.id}`">
+                {{ plant.parentPlant2.qrCode }} ({{ plant.parentPlant2.displayName }})
               </RouterLink>
               <span v-else>-</span>
             </span>

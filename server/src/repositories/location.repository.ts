@@ -7,6 +7,7 @@ const selectRow = {
   code: true,
   name: true,
   description: true,
+  ownerId: true,
   typeId: true,
   parentId: true,
   imagePath: true,
@@ -26,6 +27,8 @@ export interface LocationFilters {
   q?: string;
   parentId?: string;
   typeId?: string;
+  /** CUSTOMER 역할 요청 시 본인 소유 위치만 조회 */
+  ownerId?: string;
   /** 기본값 false — 지정하지 않으면 활성 위치만 반환한다. */
   includeInactive?: boolean;
 }
@@ -33,6 +36,7 @@ export interface LocationFilters {
 function buildWhere(filters: LocationFilters): Prisma.PlantLocationWhereInput {
   const where: Prisma.PlantLocationWhereInput = {};
   if (!filters.includeInactive) where.isActive = true;
+  if (filters.ownerId) where.ownerId = filters.ownerId;
   if (filters.parentId) where.parentId = filters.parentId;
   if (filters.typeId) where.typeId = filters.typeId;
   if (filters.q) {
@@ -57,11 +61,12 @@ export const locationRepository = {
     return prisma.plantLocation.findUnique({ where: { id }, select: selectRow });
   },
 
-  async create(data: CreateLocationInput): Promise<LocationRow> {
+  async create(data: CreateLocationInput & { ownerId: string }): Promise<LocationRow> {
     return prisma.plantLocation.create({
       data: {
         code: data.code,
         name: data.name,
+        ownerId: data.ownerId,
         description: data.description ?? undefined,
         typeId: data.typeId ?? undefined,
         parentId: data.parentId ?? undefined,

@@ -13,6 +13,7 @@ import userRoutes from './routes/users';
 import qrRoutes from './routes/qr';
 import settingsRoutes from './routes/settings';
 import cartRoutes from './routes/cart';
+import collectorProfileRoutes from './routes/collector-profile';
 import { errorHandler } from './middleware/errorHandler';
 
 const API_V1 = '/api/v1';
@@ -40,6 +41,7 @@ export function createApp(): Express {
   app.use(`${API_V1}/qr`, qrRoutes);
   app.use(`${API_V1}/settings`, settingsRoutes);
   app.use(`${API_V1}/cart`, cartRoutes);
+  app.use(`${API_V1}/collector-profile`, collectorProfileRoutes);
 
   app.use(errorHandler);
 

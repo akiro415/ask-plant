@@ -4,6 +4,7 @@ import { useHistoryStore } from '@/stores/history';
 import type { PlantHistory } from '@/types/history';
 import Modal from '@/components/common/Modal.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
+import BaseAutocomplete from '@/components/base/BaseAutocomplete.vue';
 
 const props = defineProps<{ plantId: string; history?: PlantHistory | null }>();
 const emit = defineEmits<{ close: []; saved: [] }>();
@@ -38,6 +39,10 @@ watch(
 const isValid = computed(() => form.type.trim().length > 0);
 const canSubmit = computed(() => isValid.value && !store.formLoading);
 
+const typeAutocompleteOptions = computed(() =>
+  store.typeOptions.map((opt) => ({ value: opt.code, label: opt.name, keywords: opt.code })),
+);
+
 async function handleSubmit() {
   if (!isValid.value) return;
 
@@ -59,12 +64,7 @@ async function handleSubmit() {
 <template>
   <Modal :title="isEdit ? '이력 수정' : '이력 등록'" @close="emit('close')">
     <form class="history-form" @submit.prevent="handleSubmit">
-      <div class="form-field">
-        <label for="hf-type">유형 <span class="required">*</span></label>
-        <select id="hf-type" v-model="form.type" required>
-          <option v-for="opt in store.typeOptions" :key="opt.code" :value="opt.code">{{ opt.name }}</option>
-        </select>
-      </div>
+      <BaseAutocomplete id="hf-type" v-model="form.type" label="유형" required :options="typeAutocompleteOptions" placeholder="유형 검색" />
       <div class="form-field">
         <label for="hf-title">제목</label>
         <input id="hf-title" v-model="form.title" type="text" />

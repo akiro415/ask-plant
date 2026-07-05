@@ -13,11 +13,14 @@ import { formatCurrency, formatDateTime } from '@/utils/format';
 const auth = useAuthStore();
 const dashboard = useDashboardStore();
 const summary = computed(() => dashboard.summary);
+const mySummary = computed(() => dashboard.mySummary);
 const recentPart = computed(() => dashboard.recentPart);
+const isCustomer = computed(() => dashboard.isCustomerView);
 const showAdminStats = computed(() => auth.isAdmin && summary.value?.userStats);
 
 function statusCount(code: string): number {
-  return summary.value?.statusDistribution.find((s) => s.code === code)?.count ?? 0;
+  const dist = isCustomer.value ? mySummary.value?.statusDistribution : summary.value?.statusDistribution;
+  return dist?.find((s) => s.code === code)?.count ?? 0;
 }
 
 onMounted(() => {
@@ -30,7 +33,7 @@ onMounted(() => {
     <div class="page-header-row">
       <div>
         <h1>Dashboard</h1>
-        <p class="page-header-subtitle">전체 컬렉션 현황을 한눈에 확인하세요.</p>
+        <p class="page-header-subtitle">{{ isCustomer ? '내 컬렉션 현황을 한눈에 확인하세요.' : '전체 컬렉션 현황을 한눈에 확인하세요.' }}</p>
       </div>
     </div>
 
@@ -41,22 +44,74 @@ onMounted(() => {
       <EmptyState :message="dashboard.statsError" icon="⚠️" />
       <div class="table-empty-actions"><BaseButton variant="outline" size="sm" @click="dashboard.fetchStats">다시 시도</BaseButton></div>
     </div>
-    <template v-else-if="summary">
+    <template v-else-if="isCustomer && mySummary">
     <div class="stat-grid">
       <RouterLink to="/admin/plants" class="stat-card-link">
-        <StatCard icon="🪴" label="총 식물수" :value="summary.plantCount" />
-      </RouterLink>
-      <RouterLink to="/admin/species" class="stat-card-link">
-        <StatCard icon="🌱" label="품종수" :value="summary.speciesCount" />
+        <StatCard icon="🪴" label="내 식물수" :value="mySummary.plantCount" />
       </RouterLink>
       <RouterLink to="/admin/plants?status=FOR_SALE" class="stat-card-link">
-        <StatCard icon="🏷️" label="판매중" :value="statusCount('FOR_SALE')" />
+        <StatCard icon="🏷️" label="판매중" :value="mySummary.forSaleCount" />
       </RouterLink>
       <RouterLink to="/admin/plants?status=RESERVED" class="stat-card-link">
-        <StatCard icon="⏳" label="예약중" :value="statusCount('RESERVED')" />
+        <StatCard icon="⏳" label="예약중" :value="mySummary.reservedCount" />
       </RouterLink>
       <RouterLink to="/admin/plants?status=SOLD" class="stat-card-link">
-        <StatCard icon="✅" label="판매완료" :value="statusCount('SOLD')" />
+        <StatCard icon="✅" label="판매완료" :value="mySummary.soldCount" />
+      </RouterLink>
+      <RouterLink to="/admin/locations" class="stat-card-link">
+        <StatCard icon="📍" label="위치 수" :value="mySummary.locationCount" />
+      </RouterLink>
+    </div>
+
+    <div class="dashboard-grid">
+      <section class="panel">
+        <h2 class="panel-title">상태 분포</h2>
+        <ul v-if="mySummary.statusDistribution.length > 0" class="status-dist-list">
+          <li v-for="item in mySummary.statusDistribution" :key="item.code">
+            <RouterLink :to="`/admin/plants?status=${item.code}`" class="status-dist-link">
+              <StatusBadge :code="item.code" :label="item.name" />
+              <span class="status-dist-count">{{ item.count }}개</span>
+            </RouterLink>
+          </li>
+        </ul>
+        <EmptyState v-else message="상태 분포 데이터가 없습니다." icon="🏷️" />
+      </section>
+
+      <section class="panel">
+        <h2 class="panel-title">최근 등록</h2>
+        <ul v-if="mySummary.recentPlants.length > 0" class="recent-list">
+          <li v-for="item in mySummary.recentPlants" :key="item.id">
+            <RouterLink :to="`/admin/plants/${item.id}`" class="recent-list-link">
+              <span class="recent-list-name">{{ item.nickname ?? item.species.displayName }}</span>
+              <span class="recent-list-code">{{ item.qrCode }}</span>
+            </RouterLink>
+            <div class="recent-list-meta">
+              <StatusBadge :code="item.status.code" :label="item.status.name" />
+              <span class="recent-list-date">{{ formatDateTime(item.createdAt) }}</span>
+            </div>
+          </li>
+        </ul>
+        <EmptyState v-else message="등록된 개체가 없습니다." icon="🪴" />
+      </section>
+    </div>
+    </template>
+
+    <template v-else-if="summary">
+    <div class="stat-grid">
+      <RouterLink v-if="summary.userCount != null" to="/admin/users" class="stat-card-link">
+        <StatCard icon="👥" label="전체 사용자" :value="summary.userCount" />
+      </RouterLink>
+      <RouterLink to="/admin/plants" class="stat-card-link">
+        <StatCard icon="🪴" label="전체 식물수" :value="summary.plantCount" />
+      </RouterLink>
+      <RouterLink to="/admin/plants?status=FOR_SALE" class="stat-card-link">
+        <StatCard icon="🏷️" label="판매중" :value="summary.forSaleCount ?? statusCount('FOR_SALE')" />
+      </RouterLink>
+      <RouterLink to="/admin/plants?status=RESERVED" class="stat-card-link">
+        <StatCard icon="⏳" label="예약중" :value="summary.reservedCount ?? statusCount('RESERVED')" />
+      </RouterLink>
+      <RouterLink to="/admin/plants?status=SOLD" class="stat-card-link">
+        <StatCard icon="✅" label="판매완료" :value="summary.soldCount ?? statusCount('SOLD')" />
       </RouterLink>
       <RouterLink to="/admin/locations" class="stat-card-link">
         <StatCard icon="📍" label="위치 수" :value="summary.locationCount" />
@@ -106,7 +161,21 @@ onMounted(() => {
       </section>
 
       <section class="panel">
-        <h2 class="panel-title">최근 등록 개체</h2>
+        <h2 class="panel-title">최근 가입</h2>
+        <ul v-if="summary.recentUsers && summary.recentUsers.length > 0" class="recent-list">
+          <li v-for="item in summary.recentUsers" :key="item.id">
+            <div class="recent-list-link">
+              <span class="recent-list-name">{{ item.name }}</span>
+              <span class="recent-list-code">{{ item.email }}</span>
+            </div>
+            <span class="recent-list-date">{{ formatDateTime(item.createdAt) }}</span>
+          </li>
+        </ul>
+        <EmptyState v-else message="최근 가입 사용자가 없습니다." icon="👤" />
+      </section>
+
+      <section class="panel">
+        <h2 class="panel-title">최근 등록</h2>
         <ul v-if="summary.recentPlants.length > 0" class="recent-list">
           <li v-for="item in summary.recentPlants" :key="item.id">
             <RouterLink :to="`/admin/plants/${item.id}`" class="recent-list-link">

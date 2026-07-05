@@ -9,14 +9,14 @@ export interface MenuItem {
 }
 
 export const ADMIN_MENU: MenuItem[] = [
-  { label: 'Dashboard', icon: '📊', to: '/admin/dashboard', roles: ['ADMIN', 'STAFF'] },
+  { label: 'Dashboard', icon: '📊', to: '/admin/dashboard', roles: ['ADMIN', 'STAFF', 'CUSTOMER'] },
   { label: '품종관리', icon: '🌱', to: '/admin/species', roles: ['ADMIN', 'STAFF'] },
   { label: '내 컬렉션', icon: '🪴', to: '/admin/plants', roles: ['CUSTOMER'] },
   { label: '개체관리', icon: '🪴', to: '/admin/plants', roles: ['ADMIN', 'STAFF'] },
-  { label: '위치관리', icon: '📍', to: '/admin/locations', roles: ['ADMIN', 'STAFF'] },
-  { label: '사진관리', icon: '🖼️', to: '/admin/photos', roles: ['ADMIN', 'STAFF'] },
-  { label: 'QR관리', icon: '🔗', to: '/admin/qr', roles: ['ADMIN', 'STAFF'] },
+  { label: '위치관리', icon: '📍', to: '/admin/locations', roles: ['ADMIN', 'STAFF', 'CUSTOMER'] },
+  { label: '사진관리', icon: '🖼️', to: '/admin/photos', roles: ['ADMIN', 'STAFF', 'CUSTOMER'] },
+  { label: 'QR관리', icon: '🔗', to: '/admin/qr', roles: ['ADMIN', 'STAFF', 'CUSTOMER'] },
   { label: '공통코드', icon: '🏷️', to: '/admin/common-codes', roles: ['ADMIN', 'STAFF'] },
   { label: '사용자관리', icon: '👤', to: '/admin/users', roles: ['ADMIN'] },
-  { label: '설정', icon: '⚙️', to: '/admin/settings', roles: ['ADMIN', 'STAFF'] },
+  { label: '설정', icon: '⚙️', to: '/admin/settings', roles: ['ADMIN', 'STAFF', 'CUSTOMER'] },
 ];

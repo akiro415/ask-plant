@@ -5,6 +5,8 @@ import type { Species, TaxonRank } from '@/types/species';
 import { TAXON_RANK_LABEL } from '@/types/species';
 import Modal from '@/components/common/Modal.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
+import BaseAutocomplete from '@/components/base/BaseAutocomplete.vue';
+import BaseSwitch from '@/components/base/BaseSwitch.vue';
 
 const props = defineProps<{ species: Species | null }>();
 const emit = defineEmits<{ close: []; saved: [] }>();
@@ -36,6 +38,22 @@ const taxonRankOptions = Object.entries(TAXON_RANK_LABEL) as [TaxonRank, string]
 /** 수정 대상 자기 자신은 모본/부본으로 선택할 수 없다. */
 const parentSpeciesOptions = computed(() =>
   store.speciesList.filter((s) => s.id !== props.species?.id),
+);
+
+const categoryAutocompleteOptions = computed(() =>
+  store.categoryChoices.map((c) => ({ value: c.id, label: c.name, keywords: c.code })),
+);
+
+const taxonRankAutocompleteOptions = computed(() =>
+  taxonRankOptions.map(([value, label]) => ({ value, label })),
+);
+
+const parentSpeciesAutocompleteOptions = computed(() =>
+  parentSpeciesOptions.value.map((s) => ({
+    value: s.id,
+    label: `${s.displayName}${s.scientificName ? ` (${s.scientificName})` : ''}`,
+    keywords: [s.displayName, s.scientificName ?? '', s.koreanName ?? ''].join(' '),
+  })),
 );
 
 const isValid = computed(() => form.displayName.trim().length > 0);
@@ -97,20 +115,22 @@ async function handleSubmit() {
           <input id="sf-englishName" v-model="form.englishName" type="text" />
         </div>
 
-        <div class="form-field">
-          <label for="sf-categoryId">카테고리</label>
-          <select id="sf-categoryId" v-model="form.categoryId">
-            <option value="">미분류</option>
-            <option v-for="c in store.categoryChoices" :key="c.id" :value="c.id">{{ c.name }}</option>
-          </select>
-        </div>
-
-        <div class="form-field">
-          <label for="sf-taxonRank">분류 계급</label>
-          <select id="sf-taxonRank" v-model="form.taxonRank">
-            <option v-for="[value, label] in taxonRankOptions" :key="value" :value="value">{{ label }}</option>
-          </select>
-        </div>
+        <BaseAutocomplete
+          id="sf-categoryId"
+          v-model="form.categoryId"
+          label="카테고리"
+          :options="categoryAutocompleteOptions"
+          nullable
+          empty-label="미분류"
+          placeholder="카테고리 검색"
+        />
+        <BaseAutocomplete
+          id="sf-taxonRank"
+          v-model="form.taxonRank"
+          label="분류 계급"
+          :options="taxonRankAutocompleteOptions"
+          placeholder="분류 계급"
+        />
 
         <div class="form-field">
           <label for="sf-fieldNumber">필드넘버</label>
@@ -137,32 +157,26 @@ async function handleSubmit() {
           <input id="sf-wateringCycle" v-model="form.defaultWateringCycleDays" type="number" min="1" placeholder="예: 14" />
         </div>
 
-        <div class="form-field">
-          <label class="form-checkbox-label" for="sf-isHybrid">
-            <input id="sf-isHybrid" v-model="form.isHybrid" type="checkbox" />
-            교배종 여부
-          </label>
-        </div>
+        <BaseSwitch id="sf-isHybrid" v-model="form.isHybrid" label="교배종 여부" />
 
-        <div class="form-field">
-          <label for="sf-parentSpecies1Id">모본 (parentSpecies1)</label>
-          <select id="sf-parentSpecies1Id" v-model="form.parentSpecies1Id">
-            <option value="">없음</option>
-            <option v-for="s in parentSpeciesOptions" :key="s.id" :value="s.id">
-              {{ s.displayName }}{{ s.scientificName ? ` (${s.scientificName})` : '' }}
-            </option>
-          </select>
-        </div>
-
-        <div class="form-field">
-          <label for="sf-parentSpecies2Id">부본 (parentSpecies2)</label>
-          <select id="sf-parentSpecies2Id" v-model="form.parentSpecies2Id">
-            <option value="">없음</option>
-            <option v-for="s in parentSpeciesOptions" :key="s.id" :value="s.id">
-              {{ s.displayName }}{{ s.scientificName ? ` (${s.scientificName})` : '' }}
-            </option>
-          </select>
-        </div>
+        <BaseAutocomplete
+          id="sf-parentSpecies1Id"
+          v-model="form.parentSpecies1Id"
+          label="모본 (parentSpecies1)"
+          :options="parentSpeciesAutocompleteOptions"
+          nullable
+          empty-label="없음"
+          placeholder="모본 검색"
+        />
+        <BaseAutocomplete
+          id="sf-parentSpecies2Id"
+          v-model="form.parentSpecies2Id"
+          label="부본 (parentSpecies2)"
+          :options="parentSpeciesAutocompleteOptions"
+          nullable
+          empty-label="없음"
+          placeholder="부본 검색"
+        />
 
         <div class="form-field form-field-wide">
           <label for="sf-thumbnailUrl">썸네일 이미지 URL</label>
@@ -214,12 +228,6 @@ async function handleSubmit() {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-text);
-}
-
-.form-checkbox-label {
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
 }
 
 .required {

@@ -17,31 +17,55 @@ export interface StatusGroupRow {
   count: number;
 }
 
+const recentUserSelect = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  createdAt: true,
+} satisfies Prisma.UserSelect;
+
+export type RecentUserRow = Prisma.UserGetPayload<{ select: typeof recentUserSelect }>;
+
 export const dashboardRepository = {
-  async countPlants(): Promise<number> {
-    return prisma.plant.count({ where: { deletedAt: null } });
+  async countPlants(ownerId?: string): Promise<number> {
+    return prisma.plant.count({ where: { deletedAt: null, ...(ownerId ? { ownerId } : {}) } });
   },
 
   async countSpecies(): Promise<number> {
     return prisma.species.count({ where: { isActive: true } });
   },
 
-  async countLocations(): Promise<number> {
-    return prisma.plantLocation.count({ where: { isActive: true } });
+  async countLocations(ownerId?: string): Promise<number> {
+    return prisma.plantLocation.count({
+      where: { isActive: true, ...(ownerId ? { ownerId } : {}) },
+    });
   },
 
-  /** Prisma groupBy 집계 — 삭제되지 않은 개체를 statusId 기준으로 그룹핑해 상태별 개수를 구한다. */
-  async statusDistribution(): Promise<StatusGroupRow[]> {
+  async countUsers(): Promise<number> {
+    return prisma.user.count({ where: { isActive: true } });
+  },
+
+  async countPlantsByStatusCode(code: string, ownerId?: string): Promise<number> {
+    return prisma.plant.count({
+      where: {
+        deletedAt: null,
+        status: { code },
+        ...(ownerId ? { ownerId } : {}),
+      },
+    });
+  },
+
+  async statusDistribution(ownerId?: string): Promise<StatusGroupRow[]> {
     const rows = await prisma.plant.groupBy({
       by: ['statusId'],
-      where: { deletedAt: null },
+      where: { deletedAt: null, ...(ownerId ? { ownerId } : {}) },
       _count: { _all: true },
       orderBy: { _count: { statusId: 'desc' } },
     });
     return rows.map((row) => ({ statusId: row.statusId, count: row._count._all }));
   },
 
-  /** statusDistribution의 statusId를 code/name/sortOrder로 변환하기 위한 CommonCode 조회 */
   async findCommonCodesByIds(ids: string[]): Promise<{ id: string; code: string; name: string; sortOrder: number }[]> {
     if (ids.length === 0) return [];
     return prisma.commonCode.findMany({
@@ -50,12 +74,21 @@ export const dashboardRepository = {
     });
   },
 
-  async recentPlants(limit: number): Promise<RecentPlantRow[]> {
+  async recentPlants(limit: number, ownerId?: string): Promise<RecentPlantRow[]> {
     return prisma.plant.findMany({
-      where: { deletedAt: null },
+      where: { deletedAt: null, ...(ownerId ? { ownerId } : {}) },
       orderBy: { createdAt: 'desc' },
       take: limit,
       select: recentPlantSelect,
+    });
+  },
+
+  async recentUsers(limit: number): Promise<RecentUserRow[]> {
+    return prisma.user.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      select: recentUserSelect,
     });
   },
 
@@ -63,7 +96,6 @@ export const dashboardRepository = {
     return prisma.user.count({ where: { role: 'CUSTOMER', isActive: true } });
   },
 
-  /** STAFF를 제외한 활성 사용자 수 (ADMIN + CUSTOMER) */
   async countNonStaffUsers(): Promise<number> {
     return prisma.user.count({ where: { role: { not: 'STAFF' }, isActive: true } });
   },

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { usePhotoStore } from '@/stores/photo';
 import type { ImageApiRow } from '@/api/image.api';
@@ -11,7 +11,12 @@ import EmptyState from '@/components/common/EmptyState.vue';
 import TableRowActions from '@/components/common/TableRowActions.vue';
 import PhotoFormModal from './PhotoFormModal.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
+import BaseAutocomplete from '@/components/base/BaseAutocomplete.vue';
 import { formatDate } from '@/utils/format';
+
+const typeFilterOptions = computed(() =>
+  (Object.entries(IMAGE_TYPE_LABEL) as [ImageType, string][]).map(([value, label]) => ({ value, label })),
+);
 
 const store = usePhotoStore();
 const showForm = ref(false);
@@ -54,13 +59,16 @@ async function handleDelete(id: string, event: Event) {
 
     <FilterBar :show-search-button="false">
       <template #filters>
-        <select :value="store.typeFilter" @change="store.setTypeFilter(($event.target as HTMLSelectElement).value as ImageType | '')">
-          <option value="">전체 유형</option>
-          <option value="PRIMARY">대표사진</option>
-          <option value="FLOWER">꽃사진</option>
-          <option value="SALE">판매사진</option>
-          <option value="OTHER">기타</option>
-        </select>
+        <BaseAutocomplete
+          :model-value="store.typeFilter"
+          variant="filter"
+          :options="typeFilterOptions"
+          nullable
+          empty-label="전체 유형"
+          placeholder="유형"
+          min-width="130px"
+          @update:model-value="(v) => store.setTypeFilter(v as ImageType | '')"
+        />
       </template>
       <template #search>
         <span class="filter-spacer" />

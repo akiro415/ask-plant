@@ -12,6 +12,7 @@ export interface LocationApiRow {
   code: string;
   name: string;
   description: string | null;
+  ownerId: string;
   typeId: string | null;
   parentId: string | null;
   imagePath: string | null;

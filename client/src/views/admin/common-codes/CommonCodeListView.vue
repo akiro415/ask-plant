@@ -8,6 +8,7 @@ import FilterBar from '@/components/common/FilterBar.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import TableRowActions from '@/components/common/TableRowActions.vue';
 import CommonCodeFormModal from './CommonCodeFormModal.vue';
+import CommonCodeGroupFormModal from './CommonCodeGroupFormModal.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
 import BaseTable from '@/components/base/BaseTable.vue';
 
@@ -17,6 +18,8 @@ const ui = useUiStore();
 const localSearch = ref('');
 const showForm = ref(false);
 const editingCode = ref<CommonCode | null>(null);
+const showGroupForm = ref(false);
+const editingGroup = ref<{ groupCode: string; label: string } | null>(null);
 
 function applySearch() {
   store.setSearchKeyword(localSearch.value.trim());
@@ -36,6 +39,21 @@ function openEdit(code: CommonCode, event?: Event) {
 function closeForm() {
   showForm.value = false;
   editingCode.value = null;
+}
+
+function openGroupEdit(group: { groupCode: string; label: string }, event: Event) {
+  event.stopPropagation();
+  editingGroup.value = group;
+  showGroupForm.value = true;
+}
+
+function closeGroupForm() {
+  showGroupForm.value = false;
+  editingGroup.value = null;
+}
+
+function handleGroupSaved() {
+  closeGroupForm();
 }
 
 function handleSaved() {
@@ -100,6 +118,7 @@ onMounted(() => {
               <th>그룹명</th>
               <th>그룹코드</th>
               <th>코드 수</th>
+              <th class="col-actions">액션</th>
             </tr>
           </thead>
           <tbody>
@@ -113,6 +132,9 @@ onMounted(() => {
               <td>{{ group.label }}</td>
               <td><code>{{ group.groupCode }}</code></td>
               <td>{{ group.activeCount }}/{{ group.totalCount }}건</td>
+              <td class="col-actions" @click.stop>
+                <BaseButton variant="ghost" size="sm" @click="openGroupEdit(group, $event)">그룹명 수정</BaseButton>
+              </td>
             </tr>
           </tbody>
         </BaseTable>
@@ -164,6 +186,14 @@ onMounted(() => {
         </BaseTable>
       </section>
     </template>
+
+    <CommonCodeGroupFormModal
+      v-if="showGroupForm && editingGroup"
+      :group-code="editingGroup.groupCode"
+      :group-label="editingGroup.label"
+      @close="closeGroupForm"
+      @saved="handleGroupSaved"
+    />
 
     <CommonCodeFormModal
       v-if="showForm"

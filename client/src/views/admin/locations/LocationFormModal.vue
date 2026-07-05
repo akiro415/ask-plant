@@ -4,6 +4,7 @@ import { useLocationStore } from '@/stores/location';
 import type { PlantLocation } from '@/types/location';
 import Modal from '@/components/common/Modal.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
+import BaseAutocomplete from '@/components/base/BaseAutocomplete.vue';
 
 const props = defineProps<{ location: PlantLocation | null }>();
 const emit = defineEmits<{ close: []; saved: [] }>();
@@ -27,6 +28,18 @@ const form = reactive({
 
 /** 계층 구조 무결성 — 자기 자신은 상위 위치로 선택할 수 없도록 목록에서 제외한다(1차 차단, 순환 참조는 서버가 최종 검증). */
 const parentOptions = computed(() => store.locations.filter((l) => l.id !== props.location?.id));
+
+const typeAutocompleteOptions = computed(() =>
+  store.typeOptions.map((t) => ({ value: t.id, label: t.name, keywords: t.code })),
+);
+
+const parentAutocompleteOptions = computed(() =>
+  parentOptions.value.map((p) => ({
+    value: p.id,
+    label: `${'　'.repeat(p.depth)}${p.depth > 0 ? '└ ' : ''}${p.name}`,
+    keywords: [p.name, p.code].join(' '),
+  })),
+);
 
 const isValid = computed(() => form.code.trim().length > 0 && form.name.trim().length > 0);
 const canSubmit = computed(() => isValid.value && !store.formLoading);
@@ -77,24 +90,25 @@ async function handleSubmit() {
         <input id="lf-name" v-model="form.name" type="text" placeholder="예: 온실 A동" required />
       </div>
 
-      <div class="form-field">
-        <label for="lf-typeId">위치 유형</label>
-        <select id="lf-typeId" v-model="form.typeId">
-          <option value="">미지정</option>
-          <option v-for="t in store.typeOptions" :key="t.id" :value="t.id">{{ t.name }}</option>
-        </select>
-      </div>
-
-      <div class="form-field">
-        <label for="lf-parentId">상위 위치</label>
-        <select id="lf-parentId" v-model="form.parentId">
-          <option value="">없음 (최상위)</option>
-          <option v-for="p in parentOptions" :key="p.id" :value="p.id">
-            {{ '　'.repeat(p.depth) }}{{ p.depth > 0 ? '└ ' : '' }}{{ p.name }}
-          </option>
-        </select>
-        <p v-if="isEdit" class="form-hint">자기 자신은 상위 위치로 선택할 수 없습니다.</p>
-      </div>
+      <BaseAutocomplete
+        id="lf-typeId"
+        v-model="form.typeId"
+        label="위치 유형"
+        :options="typeAutocompleteOptions"
+        nullable
+        empty-label="미지정"
+        placeholder="유형 검색"
+      />
+      <BaseAutocomplete
+        id="lf-parentId"
+        v-model="form.parentId"
+        label="상위 위치"
+        :options="parentAutocompleteOptions"
+        nullable
+        empty-label="없음 (최상위)"
+        placeholder="상위 위치 검색"
+      />
+      <p v-if="isEdit" class="form-hint">자기 자신은 상위 위치로 선택할 수 없습니다.</p>
 
       <div class="form-field">
         <label for="lf-imagePath">배치도 이미지 경로</label>

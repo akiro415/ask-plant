@@ -6,8 +6,10 @@ import { fetchSpeciesOptions, type SpeciesOption } from '@/api/species.api';
 import { fetchCommonCodes } from '@/api/common-code.api';
 import type { CommonCode } from '@/types/common';
 import { extractErrorMessage } from '@/api/http';
+import { useAuthStore } from './auth';
 
 export const usePlantStore = defineStore('plant', () => {
+  const auth = useAuthStore();
   const plants = ref<PlantSummary[]>([]);
   const listLoading = ref(false);
   const listError = ref<string | null>(null);
@@ -27,6 +29,7 @@ export const usePlantStore = defineStore('plant', () => {
   const deleteError = ref<string | null>(null);
 
   const searchQuery = ref('');
+  const ownerSearchQuery = ref('');
   const statusFilter = ref<string>('');
   const categoryFilter = ref<string>('');
   const page = ref(1);
@@ -78,19 +81,27 @@ export const usePlantStore = defineStore('plant', () => {
     return filtered.value.slice(start, start + pageSize.value);
   });
 
-  function setSearch(value: string) {
-    searchQuery.value = value;
+  function setOwnerSearch(value: string) {
+    ownerSearchQuery.value = value;
     page.value = 1;
+    void fetchPlants();
   }
 
   function setStatusFilter(value: string) {
     statusFilter.value = value;
     page.value = 1;
+    void fetchPlants();
   }
 
   function setCategoryFilter(value: string) {
     categoryFilter.value = value;
     page.value = 1;
+  }
+
+  function setSearch(value: string) {
+    searchQuery.value = value;
+    page.value = 1;
+    void fetchPlants();
   }
 
   function setPage(value: number) {
@@ -102,7 +113,17 @@ export const usePlantStore = defineStore('plant', () => {
     listLoading.value = true;
     listError.value = null;
     try {
-      const { items } = await plantApi.list({ limit: 100, sort: 'createdAt', order: 'desc' });
+      const params: Parameters<typeof plantApi.list>[0] = {
+        limit: 100,
+        sort: 'createdAt',
+        order: 'desc',
+      };
+      if (searchQuery.value.trim()) params.q = searchQuery.value.trim();
+      if (statusFilter.value) params.status = statusFilter.value;
+      if (auth.hasRole('ADMIN', 'STAFF') && ownerSearchQuery.value.trim()) {
+        params.ownerQ = ownerSearchQuery.value.trim();
+      }
+      const { items } = await plantApi.list(params);
       plants.value = items;
       listLoaded.value = true;
     } catch (error) {
@@ -213,6 +234,7 @@ export const usePlantStore = defineStore('plant', () => {
     deleteLoading,
     deleteError,
     searchQuery,
+    ownerSearchQuery,
     statusFilter,
     categoryFilter,
     statusOptions,
@@ -224,6 +246,7 @@ export const usePlantStore = defineStore('plant', () => {
     totalPages,
     pagedPlants,
     setSearch,
+    setOwnerSearch,
     setStatusFilter,
     setCategoryFilter,
     setPage,

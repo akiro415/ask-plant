@@ -6,6 +6,8 @@ import { useAuthStore } from '@/stores/auth';
 import { USER_ROLE_LABEL, type UserRole } from '@/types/user';
 import EmptyState from '@/components/common/EmptyState.vue';
 import DetailPageActions from '@/components/common/DetailPageActions.vue';
+import BaseAutocomplete from '@/components/base/BaseAutocomplete.vue';
+import BaseSwitch from '@/components/base/BaseSwitch.vue';
 import { formatDate } from '@/utils/format';
 
 const route = useRoute();
@@ -15,6 +17,10 @@ const auth = useAuthStore();
 const editMode = ref(false);
 const canManage = computed(() => auth.hasRole('ADMIN'));
 const roleOptions: UserRole[] = ['ADMIN', 'STAFF', 'CUSTOMER'];
+
+const roleAutocompleteOptions = computed(() =>
+  roleOptions.map((role) => ({ value: role, label: USER_ROLE_LABEL[role] })),
+);
 
 const form = reactive({
   name: '',
@@ -115,15 +121,8 @@ watch(() => route.params.id, load);
         <div class="form-field"><label>이름</label><input v-model="form.name" type="text" required /></div>
         <div class="form-field"><label>이메일</label><input type="email" :value="user.email" disabled /></div>
         <div class="form-field"><label>연락처</label><input v-model="form.phone" type="text" /></div>
-        <div class="form-field">
-          <label>역할</label>
-          <select v-model="form.role">
-            <option v-for="role in roleOptions" :key="role" :value="role">{{ USER_ROLE_LABEL[role] }}</option>
-          </select>
-        </div>
-        <div class="form-field form-checkbox-label">
-          <label><input v-model="form.isActive" type="checkbox" /> 활성 계정</label>
-        </div>
+        <BaseAutocomplete v-model="form.role" label="역할" :options="roleAutocompleteOptions" placeholder="역할 선택" />
+        <BaseSwitch id="ud-isActive" v-model="form.isActive" label="활성 계정" />
         <p v-if="store.formError" class="form-error">{{ store.formError }}</p>
       </form>
     </section>

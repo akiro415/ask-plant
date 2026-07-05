@@ -45,7 +45,7 @@ function buildPublicListWhere(filters: PublicListFilters): Prisma.PlantWhereInpu
   const where: Prisma.PlantWhereInput = {
     deletedAt: null,
     isPublic: true,
-    status: { code: filters.statusCode },
+    status: { code: 'FOR_SALE' },
   };
   if (filters.speciesId) where.speciesId = filters.speciesId;
   if (filters.categoryId) where.species = { categoryId: filters.categoryId };
@@ -60,10 +60,9 @@ function buildPublicListWhere(filters: PublicListFilters): Prisma.PlantWhereInpu
 }
 
 export const publicRepository = {
-  /** DISCARDED 상태 개체는 QR 조회 결과에서 완전히 숨긴다 (docs/api-specification.md 12장). */
   async findByQrCode(qrCode: string): Promise<PublicPlantRow | null> {
     return prisma.plant.findFirst({
-      where: { qrCode, deletedAt: null, isPublic: true, status: { code: { not: 'DISCARDED' } } },
+      where: { qrCode, isPublic: true, deletedAt: null, status: { code: 'FOR_SALE' } },
       include: publicPlantInclude,
     });
   },

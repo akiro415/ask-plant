@@ -6,6 +6,7 @@ import { useCartStore } from '@/stores/cart';
 import { useAuthStore } from '@/stores/auth';
 import EmptyState from '@/components/common/EmptyState.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
+import BaseAutocomplete from '@/components/base/BaseAutocomplete.vue';
 import { formatCurrency } from '@/utils/format';
 import { placeholderImage } from '@/utils/placeholder';
 
@@ -14,6 +15,10 @@ const router = useRouter();
 const store = usePublicShowcaseStore();
 const cart = useCartStore();
 const auth = useAuthStore();
+
+const categoryFilterOptions = computed(() =>
+  store.categoryOptions.map((cat) => ({ value: cat.id, label: cat.name, keywords: cat.code })),
+);
 
 const searchInput = computed({
   get: () => store.filters.q,
@@ -81,10 +86,16 @@ watch(
 
     <form class="showcase-filters" @submit.prevent="applySearch">
       <input v-model="searchInput" type="search" placeholder="품종명·닉네임·QR 검색" class="showcase-search" />
-      <select v-model="store.filters.categoryId" class="showcase-select" @change="applySearch">
-        <option value="">전체 카테고리</option>
-        <option v-for="cat in store.categoryOptions" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
-      </select>
+      <BaseAutocomplete
+        v-model="store.filters.categoryId"
+        variant="filter"
+        :options="categoryFilterOptions"
+        nullable
+        empty-label="전체 카테고리"
+        placeholder="카테고리"
+        min-width="150px"
+        @update:model-value="applySearch"
+      />
       <BaseButton type="submit" variant="primary" size="sm">검색</BaseButton>
     </form>
 

@@ -1,7 +1,10 @@
 import { userRepository, type UserRow } from '../repositories/user.repository';
-import { ForbiddenError, NotFoundError, ValidationAppError } from '../middleware/errorHandler';
-import type { ListUsersQuery, UpdateUserInput } from '../schemas/user.schema';
+import { ConflictError, ForbiddenError, NotFoundError, ValidationAppError } from '../middleware/errorHandler';
+import type { ListUsersQuery, UpdateUserInput, CreateUserInput } from '../schemas/user.schema';
 import type { AuthenticatedUser } from '../types/express';
+import bcrypt from 'bcrypt';
+
+const SALT_ROUNDS = 10;
 
 export interface UserDto {
   id: string;
@@ -69,6 +72,26 @@ export const userService = {
 
   async getById(id: string): Promise<UserDto> {
     const row = await userRepository.findById(id);
+    if (!row) throw new NotFoundError('사용자를 찾을 수 없습니다');
+    return toDto(row);
+  },
+
+  async create(input: CreateUserInput): Promise<UserDto> {
+    const existing = await userRepository.findByEmail(input.email);
+    if (existing) {
+      throw new ConflictError('이미 사용 중인 이메일입니다', [{ field: 'email', message: '중복된 이메일입니다' }]);
+    }
+
+    const passwordHash = await bcrypt.hash(input.password, SALT_ROUNDS);
+    const created = await userRepository.create({
+      email: input.email,
+      passwordHash,
+      name: input.name,
+      phone: input.phone ?? null,
+      role: input.role,
+    });
+
+    const row = await userRepository.findById(created.id);
     if (!row) throw new NotFoundError('사용자를 찾을 수 없습니다');
     return toDto(row);
   },

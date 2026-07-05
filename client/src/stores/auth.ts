@@ -31,7 +31,7 @@ export const useAuthStore = defineStore('auth', () => {
   /** ADMIN / STAFF — 전체 운영 (유저 관리 제외는 canManageUsers) */
   const isOperator = computed(() => hasRole('ADMIN', 'STAFF'));
   const canManageUsers = computed(() => user.value?.role === 'ADMIN');
-  const defaultAdminPath = computed(() => (isCustomer.value ? '/admin/plants' : '/admin/dashboard'));
+  const defaultAdminPath = computed(() => '/admin/dashboard');
 
   function setSession(nextToken: string, nextUser: AuthUser) {
     token.value = nextToken;

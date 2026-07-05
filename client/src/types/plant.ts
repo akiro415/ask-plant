@@ -27,14 +27,28 @@ export interface PlantParentRef {
   displayName: string;
 }
 
+export type LifeCycleStage = 'SEED' | 'SOWING' | 'SEEDLING' | 'ADULT' | 'FOR_SALE' | 'SOLD' | 'PRESERVED';
+
+export const LIFE_CYCLE_STAGE_LABEL: Record<LifeCycleStage, string> = {
+  SEED: '씨앗',
+  SOWING: '파종',
+  SEEDLING: '묘목',
+  ADULT: '성체',
+  FOR_SALE: '판매',
+  SOLD: '판매완료',
+  PRESERVED: '보존',
+};
+
 export interface PlantSummary {
   id: string;
   qrCode: string;
   nickname: string | null;
   species: PlantSpeciesRef;
   location: PlantLocationRef | null;
+  owner: PlantOwnerRef | null;
   status: CommonCode;
   originType: CommonCode;
+  lifeCycleStage: LifeCycleStage | null;
   sellingPrice: number | null;
   flowerColor: string | null;
   purchaseHeadCount: number | null;
@@ -61,6 +75,8 @@ export interface PlantDetail extends PlantSummary {
   potSize: string | null;
   memo: string | null;
   parentPlant: PlantParentRef | null;
+  parentPlant1: PlantParentRef | null;
+  parentPlant2: PlantParentRef | null;
   owner: PlantOwnerRef | null;
   isPublic: boolean;
   childPlantCount: number;

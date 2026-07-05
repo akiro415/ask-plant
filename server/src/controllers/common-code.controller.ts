@@ -4,6 +4,7 @@ import {
   createCommonCodeSchema,
   listCommonCodeQuerySchema,
   updateCommonCodeSchema,
+  updateCommonCodeGroupSchema,
 } from '../schemas/common-code.schema';
 
 export const commonCodeController = {
@@ -40,6 +41,25 @@ export const commonCodeController = {
     try {
       const input = updateCommonCodeSchema.parse(req.body);
       const item = await commonCodeService.update(String(req.params.id), input);
+      res.json({ data: item });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getGroups(req: Request, res: Response, next: NextFunction) {
+    try {
+      const items = await commonCodeService.listGroups();
+      res.json({ data: items });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async updateGroup(req: Request, res: Response, next: NextFunction) {
+    try {
+      const input = updateCommonCodeGroupSchema.parse(req.body);
+      const item = await commonCodeService.updateGroup(String(req.params.groupCode), input);
       res.json({ data: item });
     } catch (error) {
       next(error);

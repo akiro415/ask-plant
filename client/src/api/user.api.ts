@@ -16,6 +16,14 @@ export interface UpdateUserPayload {
   isActive?: boolean;
 }
 
+export interface CreateUserPayload {
+  email: string;
+  password: string;
+  name: string;
+  phone?: string | null;
+  role?: UserRole;
+}
+
 /** GET /api/v1/users — ADMIN 전용. 기본은 활성 사용자만 반환. */
 export async function fetchUsers(params?: { includeInactive?: boolean; q?: string; role?: UserRole }): Promise<AdminUser[]> {
   const { data } = await httpClient.get<UserListResponse>('/users', { params });
@@ -25,6 +33,12 @@ export async function fetchUsers(params?: { includeInactive?: boolean; q?: strin
 /** GET /api/v1/users/:id — ADMIN 전용 */
 export async function fetchUserById(id: string): Promise<AdminUser> {
   const { data } = await httpClient.get<UserItemResponse>(`/users/${id}`);
+  return data.data;
+}
+
+/** POST /api/v1/users — ADMIN 전용 */
+export async function createUser(payload: CreateUserPayload): Promise<AdminUser> {
+  const { data } = await httpClient.post<UserItemResponse>('/users', payload);
   return data.data;
 }
 

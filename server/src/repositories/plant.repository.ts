@@ -7,6 +7,7 @@ const listInclude = {
     select: { id: true, displayName: true, scientificName: true, koreanName: true, genus: true, category: true },
   },
   location: { select: { id: true, code: true, name: true } },
+  owner: { select: { id: true, name: true, email: true } },
   status: true,
   originType: true,
   images: { where: { isPrimary: true }, take: 1 },
@@ -17,7 +18,12 @@ const detailInclude = {
   parentPlant: {
     select: { id: true, qrCode: true, species: { select: { displayName: true } } },
   },
-  owner: { select: { id: true, name: true, email: true } },
+  parentPlant1: {
+    select: { id: true, qrCode: true, species: { select: { displayName: true } } },
+  },
+  parentPlant2: {
+    select: { id: true, qrCode: true, species: { select: { displayName: true } } },
+  },
   images: { orderBy: { sortOrder: 'asc' } },
   histories: {
     orderBy: { performedAt: 'desc' },
@@ -35,8 +41,8 @@ export interface PlantFilters {
   locationId?: string;
   statusCode?: string;
   originTypeCode?: string;
-  /** CUSTOMER 역할 요청 시 본인 소유 개체만 조회하도록 강제하는 필터 (RBAC) */
   ownerId?: string;
+  ownerQ?: string;
 }
 
 export interface PlantPagination {
@@ -54,6 +60,14 @@ function buildWhere(filters: PlantFilters): Prisma.PlantWhereInput {
   if (filters.statusCode) where.status = { code: filters.statusCode };
   if (filters.originTypeCode) where.originType = { code: filters.originTypeCode };
   if (filters.ownerId) where.ownerId = filters.ownerId;
+  if (filters.ownerQ) {
+    where.owner = {
+      OR: [
+        { name: { contains: filters.ownerQ, mode: 'insensitive' } },
+        { email: { contains: filters.ownerQ, mode: 'insensitive' } },
+      ],
+    };
+  }
 
   if (filters.q) {
     where.OR = [
@@ -123,7 +137,10 @@ export const plantRepository = {
         isPublic: data.isPublic ?? false,
         nickname: data.nickname ?? undefined,
         locationId: data.locationId ?? undefined,
-        parentPlantId: data.parentPlantId ?? undefined,
+        parentPlantId: data.parentPlantId ?? data.parentPlant1Id ?? undefined,
+        parentPlant1Id: data.parentPlant1Id ?? data.parentPlantId ?? undefined,
+        parentPlant2Id: data.parentPlant2Id ?? undefined,
+        lifeCycleStage: data.lifeCycleStage ?? undefined,
         purchasePrice: data.purchasePrice ?? undefined,
         sellingPrice: data.sellingPrice ?? data.totalSellingPrice ?? undefined,
         flowerColor: data.flowerColor ?? undefined,
@@ -152,6 +169,9 @@ export const plantRepository = {
         statusId: data.statusId ?? undefined,
         originTypeId: data.originTypeId ?? undefined,
         parentPlantId: data.parentPlantId === undefined ? undefined : data.parentPlantId,
+        parentPlant1Id: data.parentPlant1Id === undefined ? undefined : data.parentPlant1Id,
+        parentPlant2Id: data.parentPlant2Id === undefined ? undefined : data.parentPlant2Id,
+        lifeCycleStage: data.lifeCycleStage === undefined ? undefined : data.lifeCycleStage,
         ownerId: data.ownerId === undefined ? undefined : data.ownerId,
         isPublic: data.isPublic === undefined ? undefined : data.isPublic,
         purchasePrice: data.purchasePrice === undefined ? undefined : data.purchasePrice,
