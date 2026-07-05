@@ -21,6 +21,7 @@ function sync() {
 }
 onMounted(() => {
   sync();
+  speciesStore.ensureSpeciesLoaded();
   // Plant 목록은 이제 API로 조회되므로, 목록 화면을 거치지 않고 바로 진입해도 보유 개체가 보이도록 최초 1회 로드를 보장한다.
   plantStore.ensurePlantsLoaded();
 });
@@ -28,7 +29,14 @@ watch(() => route.params.id, sync);
 </script>
 
 <template>
-  <div v-if="species">
+  <div v-if="speciesStore.listLoading && !species" class="panel">
+    <EmptyState message="품종 정보를 불러오는 중입니다..." icon="⏳" />
+  </div>
+  <div v-else-if="speciesStore.listError && !species" class="panel">
+    <EmptyState :message="speciesStore.listError" icon="⚠️" />
+    <div class="table-empty-actions"><button type="button" class="btn btn-outline btn-sm" @click="speciesStore.fetchSpecies">다시 시도</button></div>
+  </div>
+  <div v-else-if="species">
     <div class="page-header-row">
       <div>
         <h1>{{ species.displayName }}</h1>
@@ -38,7 +46,8 @@ watch(() => route.params.id, sync);
 
     <div class="species-detail-grid">
       <div class="panel">
-        <img :src="species.thumbnailUrl" alt="" class="species-detail-thumb" />
+        <img v-if="species.thumbnailUrl" :src="species.thumbnailUrl" alt="" class="species-detail-thumb" />
+        <div v-else class="species-detail-thumb species-detail-thumb-placeholder">🌱</div>
       </div>
       <div class="panel info-card">
         <div class="info-row"><span class="info-label">카테고리</span><span class="info-value">{{ species.category?.name ?? '-' }} ({{ species.category?.code }})</span></div>
@@ -103,6 +112,20 @@ watch(() => route.params.id, sync);
   border-radius: 8px;
   aspect-ratio: 1 / 1;
   object-fit: cover;
+}
+
+.species-detail-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  background: var(--color-bg);
+}
+
+.table-empty-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: -0.5rem;
 }
 
 .info-card-title {

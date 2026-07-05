@@ -322,3 +322,21 @@ model Cart {
   @@index([userId])
   @@map("carts")
 }
+
+// ─────────────────────────────────────────────
+// 시스템 설정 (싱글톤 id='default')
+// ─────────────────────────────────────────────
+model SystemSettings {
+  id                     String   @id @default("default")
+  serviceName            String   @default("Ask Plant")
+  defaultLanguage        String   @default("ko")
+  defaultPlantStatusCode String   @default("FOR_SALE")
+  notifyOrder            Boolean  @default(true)
+  notifyLowStock         Boolean  @default(true)
+  notifyWeeklyReport     Boolean  @default(false)
+  qrCodeDigits           Int      @default(6)
+  labelPaperSize         String   @default("40mm x 30mm")
+  updatedAt              DateTime @updatedAt
+
+  @@map("system_settings")
+}

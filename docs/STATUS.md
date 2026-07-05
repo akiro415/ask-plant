@@ -1,6 +1,6 @@
 # Ask Plant — 프로젝트 현재 상태 (STATUS)
 
-> 마지막 갱신: 2026-07-05 · 로그인 API 실연동 + auth store fetchMe + router guard 강화 + Plant 화면 mock 완전 제거 반영
+> 마지막 갱신: 2026-07-05 · Cart API + Public 쇼케이스(`/p`) 완성
 >
 > 이 문서는 실제 코드를 기준으로 "지금 무엇이 동작하는가"만 기록하는 단일 진실 소스(Single Source of Truth)다.
 > 설계 근거/전체 로드맵은 [DB 명세서](./db-specification.md), [API 명세서](./api-specification.md), [ROADMAP](./ROADMAP.md)를 참고한다.
@@ -10,23 +10,35 @@
 | 영역 | 상태 | 비고 |
 |---|---|---|
 | 프로젝트 골격 (모노레포: client/server) | ✅ | npm workspaces + concurrently |
-| DB 스키마 (Prisma, 12개 모델) | ✅ | `db push`로만 동기화, migration 파일 없음 |
+| DB 스키마 (Prisma, 13개 모델) | ✅ | `SystemSettings` 추가, `db push`로만 동기화 |
 | **Plant CRUD API** | ✅ | 인증 필수 + RBAC(ownerId 기반) 적용, QR 자동발급, Soft Delete |
-| **인증 API (JWT)** | ✅ | `POST /auth/register`, `POST /auth/login`, `GET /auth/me` |
-| **Public 조회 API** | ✅ | `GET /public/plants/:qrCode`, 인증 불필요, 관리자 필드 제외 |
-| CommonCode / Species 조회 API | ✅ | 조회 전용, **인증 미적용**(Plant와 보호 수준 다름) |
-| Location/Image/History/Cart/QR/User관리 API | ❌ | 스키마·문서만 존재, 서버 코드 없음 |
+| **Species CRUD API** | ✅ | `GET/GET:id/POST/PUT/DELETE`, 인증 필수 + RBAC(ADMIN/STAFF만 CUD), 삭제는 `isActive=false` soft delete |
+| **PlantLocation CRUD API** | ✅ | `GET/GET:id/POST/PUT/DELETE`, 인증 필수 + RBAC(ADMIN/STAFF만 CUD), 계층 구조 순환 참조 방지, soft delete |
+| **Dashboard 요약 API** | ✅ | `GET /dashboard`, 인증 필수 + RBAC(ADMIN/STAFF만), Prisma `count`/`groupBy` 집계 사용 |
+| **인증 API (JWT)** | ✅ | `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, `PUT /auth/me`(본인 name/phone 수정) |
+| **Public 판매 목록 API** | ✅ | `GET /public/plants` — 필터·페이지네이션, latestImage 포함 |
+| CommonCode 조회 API | ✅ | 조회 전용, **인증 미적용**(요청 범위상 의도적으로 유지, Plant/Species/Location과 보호 수준 다름) |
+| Image/History/Cart API | ✅ | History/Image CRUD + **Cart CRUD** 완료 |
+| **QR 관리 API** | ✅ | `GET /qr/list`, `GET /qr/preview/:plantId`, RBAC( CUSTOMER=본인 소유 ) |
+| **Settings API** | ✅ | `GET/PUT /settings`, `SystemSettings` 싱글톤, GET=ADMIN/STAFF, PUT=ADMIN |
+| **User 관리 API** | ✅ | `GET/GET:id/PUT/DELETE /users`, `authenticate` + `requireRole('ADMIN')`, 삭제는 `isActive=false` soft delete, 마지막 ADMIN 보호 |
 | Seed 스크립트 | ✅ | SYSTEM ADMIN/테스트 CUSTOMER + 테스트 데이터, upsert 기반 재실행 안전 |
 | **Vue 관리자 화면 — Plant(목록/상세/등록)** | ✅ API 연동, mock 0% | 목록 필터(상태/카테고리) 드롭다운까지 실 API 전환 완료, `mockCategories`/`commonCodes.mock` 참조 제거 |
 | **Vue 관리자 화면 — CommonCode** | ✅ API 연동 | 그룹 Grid + 코드 Grid + 검색으로 리팩토링 완료 |
-| Vue 관리자 화면 — 나머지 7종(Species/Location/Photo/QR/User/Settings/Dashboard) | ❌ Mock | `client/src/mock/*.mock.ts` 데이터로만 렌더링 |
+| **Vue 관리자 화면 — Species(목록/상세 + 등록/수정/삭제)** | ✅ API 연동, mock 0% | `GET/POST/PUT/DELETE /species` 전부 연동. 목록 화면에 등록/수정 폼 모달(`SpeciesFormModal.vue`) + 삭제 confirm 추가, ADMIN/STAFF만 버튼 노출 |
+| **Vue 관리자 화면 — Location(목록 + 등록/수정/삭제)** | ✅ API 연동, mock 0% | `GET/POST/PUT/DELETE /locations` 전부 연동. 등록/수정 폼 모달(`LocationFormModal.vue`, 상위 위치 자기자신 선택 차단) + 삭제 confirm 추가 |
+| **Vue 관리자 화면 — Dashboard** | ✅ API 연동 | 통계/상태분포/최근 등록 개체는 `GET /dashboard`, 최근 분갈이/판매/사진은 `GET /histories/recent`·`GET /images/recent` 실 API 연동(mock 0%) |
+| **Vue 관리자 화면 — User(사용자관리)** | ✅ API 연동, mock 0% | `GET/PUT/DELETE /users` 실 연동. 역할 수정(`UserFormModal.vue`), 비활성화(soft delete), ADMIN만 버튼 노출 |
+| **Vue 관리자 화면 — QR(관리)** | ✅ API 연동, mock 0% | `GET /qr/list` + `GET /qr/preview/:plantId` + 공개 조회 검증. 라벨 일괄인쇄 API 없음 → 버튼 비활성 |
+| **Vue 관리자 화면 — Settings(설정)** | ✅ API 연동, mock 0% | `GET/PUT /auth/me`(프로필) + `GET/PUT /settings`(시스템/QR/알림). ADMIN만 PUT |
+| **Vue 관리자 화면 — Photo(사진관리)** | ✅ API 연동, mock 0% | `GET/POST/DELETE /images`·`POST /plants/:id/images` 연동. URL 등록 폼 + 삭제 활성 |
 | **Vue 로그인 화면 / 토큰 저장·첨부** | ✅ | `/login` 페이지, localStorage 토큰 저장, axios 인터셉터, 401 리다이렉트, `/admin/*` 라우터 가드 모두 구현 |
-| Vue 모바일 Public 화면(`/p/:qrCode` 등) | ❌ Mock | 서버에 대응 API(`/public/plants/:qrCode`)는 있으나 미연동 |
+| **Vue 모바일 Public 화면(`/p/:qrCode`)** | ✅ API 연동 | `GET /public/plants/:qrCode` + `latestImage`/`latestHistory` 포함. loading/error/404 UI |
+| Vue 모바일 Public Showcase(`/p`) | ✅ API 연동 | `GET /public/plants` 쇼케이스 그리드 + 필터 + skeleton |
 
 ## 2. 아키텍처 상태
 
-**단계 판단**: 초기 개발 → API 개발(백엔드 SaaS 인증/RBAC 완료) → **프론트 연결(로그인 계층 포함 2/9 화면 API 연동)** → SaaS 완성 미도달.
-백엔드-프론트 인증 단절 문제는 해소됐지만, 여전히 7/9 관리자 화면이 mock 상태라 "완성"까지는 아니다.
+**단계 판단**: **상용 MVP 마감** — Cart·Public 쇼케이스까지 완성. 남은 갭은 결제/주문 API, 파일 업로드(S3)뿐.
 
 **강점**
 
@@ -36,16 +48,21 @@
 - Seed 스크립트가 전부 `upsert` 기반이라 재실행해도 안전, 신규 환경 온보딩 비용이 낮음
 - 프론트 토큰 저장 로직(`api/http.ts`의 `getStoredAccessToken` 등)을 Pinia 스토어와 분리해 `router → stores/auth → api/auth.api → api/http` 순환 참조 없이 구성함
 - `router.beforeEach`가 최초 보호 라우트 진입 시 `GET /auth/me`로 토큰을 서버에서 재검증(`meChecked` 플래그로 1회만 수행) — localStorage 토큰이 위조/만료됐어도 화면이 잠깐이라도 렌더링되지 않고 즉시 `/login`으로 이동
+- Species/PlantLocation 모두 CUD를 물리적 삭제가 아닌 `isActive=false`로 처리 — 참조 중인 Plant.speciesId/locationId FK가 어떤 상황에서도 깨지지 않는다. Location은 추가로 자기참조(`parentId`) 순환/자기지정을 서비스 레이어에서 사전 차단한다.
+- 프론트에서 서버가 내려주지 않는 파생 데이터(품종별/위치별 개체 수, 위치 계층 depth)를 새 API를 추가하지 않고 이미 로드된 `plantStore.plants`로 클라이언트에서 계산하는 패턴이 확립됨(`stores/species.ts`의 `speciesList` computed, `stores/location.ts`의 `buildOrderedTree`) — Plant 목록 화면의 `speciesId → categoryCode` 매핑과 동일한 접근.
 
 **위험 요소**
 
-- **API 보호 수준 불일치**: `/plants`는 인증 필수인데 `/common-codes`, `/species`는 여전히 무인증이라 도메인별 보안 정책이 다르다.
+- **API 보호 수준 불일치(일부 해소, 완전 통일은 아님)**: `/plants`, `/species`, `/locations`는 인증 필수로 통일됐지만 `/common-codes`는 이번 작업 범위에서 의도적으로 제외되어 여전히 무인증이다 — CommonCode CUD API가 추가되는 시점에는 이 결정을 재검토해야 한다.
 - **401 리다이렉트가 풀 리로드 방식**: `api/http.ts`의 401 처리는 `window.location.href` 이동을 사용해 순환 참조를 피했다 — 라우터 상태(SPA 네비게이션)를 보존하지 않고 페이지를 새로고침한다. 추후 라우터 인스턴스를 지연 참조(dynamic import)하는 방식으로 개선 여지가 있다.
 - Refresh Token이 없어 `JWT_EXPIRES_IN=1d` 만료 시 자동 재로그인 없이 즉시 로그아웃(401) 처리된다.
 - Migration 이력 없음(`db push`만 사용) — 스키마 변경 추적/롤백 불가
 - 전 모델 PK가 `cuid()`인데 `docs/RULES.md`는 "모든 PK는 UUID"를 명시 — 규칙과 실제 코드가 불일치한 채 방치됨
 - 테스트 코드 전무(unit/integration) — 회귀 검증 수단이 curl 수동 테스트뿐
-- Mock 스토어(species/location/dashboard/cart)와 API 스토어(plant/commonCode)가 공존해 화면마다 데이터 신뢰도가 다름(동일 species ID가 화면에 따라 mock 값/API 값으로 다르게 보일 수 있음)
+- Mock 데이터 **완전 제거** — `client/src/mock/` 폴더 삭제, 모든 화면이 실 API만 사용
+- **Dashboard mock 의존 완전 제거** — "최근 분갈이/판매/사진등록" 목록이 실 API(`GET /histories/recent`, `GET /images/recent`) 기반으로 전환되어 `plantId`가 실제 seed/API ID를 가리키며 상세 화면 링크가 정상 동작한다.
+- **Dashboard 통계 카드에서 "오늘 등록" 항목이 제거됨** — `GET /dashboard` 응답에 해당 필드가 없어(서버 스펙상 `plantCount/speciesCount/locationCount/recentPlants/statusDistribution`만 제공) 클라이언트에서 근사치를 계산하지 않고 카드 자체를 뺐다. 필요하다면 서버 DTO에 `todayRegisteredCount`를 추가해야 한다.
+- Species/PlantLocation 등록·수정 폼에 교배 계통(`parentSpecies1Id`/`parentSpecies2Id`)과 배치도 좌표(`imagePath`/`posX`/`posY`) 입력 필드가 추가됐다. `description`(Location) 등 기타 스키마 필드는 아직 UI에 없다.
 
 ## 3. 백엔드 상태
 
@@ -54,7 +71,7 @@
 - `POST /auth/register` — 이메일 중복 시 `409`, bcrypt 해싱(`saltRounds=10`), `role`은 요청과 무관하게 항상 `CUSTOMER`로 생성
 - `POST /auth/login` — bcrypt 비교 후 JWT 발급(`JWT_EXPIRES_IN=1d`), 계정 존재 여부를 노출하지 않도록 실패 사유 무관 동일한 `401` 메시지
 - `GET /auth/me` — 인증 필요, 본인 프로필 반환
-- Refresh Token, 비밀번호 변경/재설정, Admin의 사용자 승격 API는 없음
+- Refresh Token, 비밀번호 변경/재설정, `POST /users`(사용자 생성) API는 없음 — User 관리는 조회/수정/비활성화만 지원
 
 **RBAC (ADMIN / STAFF / CUSTOMER)**
 
@@ -62,7 +79,7 @@
 - `plant.service.ts`: `CUSTOMER`는 `list()`에서 강제로 `ownerId = 본인`, `getById/update/remove`는 소유자가 아니면 `403 FORBIDDEN`
 - `create()`는 요청 바디의 `ownerId`(스키마에 없어 애초에 zod가 제거)와 무관하게 항상 `requestUser.id`로 저장
 - `ADMIN`/`STAFF`는 전체 접근 가능(코드상 동일 취급). 단, `STAFF` 역할의 seed 계정은 없어 실제로 테스트된 적은 없음
-- `requireRole(...)` 헬퍼는 구현만 되어 있고 어떤 라우트에서도 아직 사용되지 않음
+- `requireRole(...)` 헬퍼가 이번 작업에서 처음 실사용됨 — Species/PlantLocation의 생성·수정·삭제 라우트에 `requireRole('ADMIN', 'STAFF')`로 적용, CUSTOMER는 조회(`GET`)만 가능(curl로 403/200 응답 모두 확인)
 
 **Plant API**
 
@@ -70,10 +87,70 @@
 - QR 자동발급(`Species.category.code` + `QrSequence` 원자적 증가), Soft Delete(`deletedAt`)
 - 목록/상세 응답에 자식 개체 목록·개수, 이력 담당자/위치/사진은 아직 내려주지 않음(DTO 미구현, 프론트에서 0/[]으로 대체 표시)
 
-**CommonCode / Species / Public API**
+**Species API**
 
-- `GET /common-codes?groupCode=`, `GET /species` — 조회 전용, 인증 미적용. `CommonCode` 응답에 `description`/`isActive` 포함(최근 추가). 생성/수정/삭제 API 없음
-- `GET /public/plants/:qrCode` — 인증 불필요. `purchasePrice`/`memo`/`owner`/`parentPlant`/이력/정확한 위치는 Prisma `select` 단계부터 조회하지 않음. QR 미존재 또는 `status=DISCARDED`는 동일하게 `404`(내부 상태 비노출)
+- `GET /species`, `GET /species/:id`, `POST /species`, `PUT /species/:id`, `DELETE /species/:id` — 전부 `authenticate` 필수, CUD는 `requireRole('ADMIN', 'STAFF')`
+- `GET /species`(쿼리 미지정)는 최소 필드(`id/displayName/scientificName/koreanName/category`)를 포함해 항상 전 필드(영문명/필드넘버/판매자명/taxonRank/썸네일 등)를 함께 반환하도록 확장됨 — Species 관리자 화면(목록/상세)이 이 응답 하나로 렌더링된다. 기존 최소 필드만 쓰는 `fetchSpeciesOptions()`(PlantCreateView) 소비자는 영향 없음(하위 호환). `q`/`categoryId`/`includeInactive` 쿼리로 검색·비활성 포함 조회도 지원
+- `DELETE`는 실제 row를 지우지 않고 `isActive=false`로만 변경(soft delete) — 이미 등록된 `Plant.speciesId` FK가 어떤 경우에도 깨지지 않는다. 사용 중인 개체 수와 무관하게 항상 성공(비활성화이므로 안전)
+
+**PlantLocation API**
+
+- `GET /locations`, `GET /locations/:id`, `POST /locations`, `PUT /locations/:id`, `DELETE /locations/:id` — Species와 동일한 인증/RBAC 정책
+- 계층 구조(`parentId` 자기참조) 무결성 보호: 자기 자신을 상위로 지정 불가, 상위 체인을 순회해 순환 참조가 발생하면 `400 VALIDATION_ERROR`로 차단
+- `DELETE`도 Species와 동일하게 `isActive=false` soft delete — `Plant.locationId`, 하위 위치의 `parentId` FK 보호
+
+**Dashboard API**
+
+- `GET /dashboard` — `authenticate` + `requireRole('ADMIN', 'STAFF')`, CUSTOMER는 `403`
+- 응답: `plantCount`(Plant.count, `deletedAt: null`), `speciesCount`(Species.count, `isActive: true`), `locationCount`(PlantLocation.count, `isActive: true`), `recentPlants`(최신 5건, `createdAt desc`), `statusDistribution`(Plant를 `statusId` 기준 `groupBy`한 뒤 CommonCode `sortOrder`로 정렬)
+- `plantCount`/`speciesCount`/`locationCount`는 `prisma.*.count()`, 상태 분포는 `prisma.plant.groupBy({ by: ['statusId'], _count: { _all: true } })`로 계산 — JS에서 전체 row를 가져와 집계하지 않고 Prisma 집계 쿼리로 DB에서 계산한다.
+- 프론트(`stores/dashboard.ts`)가 `GET /dashboard`와 함께 `GET /histories/recent`·`GET /images/recent`를 병렬 호출해 통계 카드/상태 분포/최근 등록 개체/최근 분갈이·판매·사진 목록을 모두 실 API로 채운다.
+
+**History / Image API**
+
+- `GET /plants/:id/histories` — 인증 필수, CUSTOMER는 본인 소유 개체만, ADMIN/STAFF는 전체. 페이지네이션 지원.
+- `POST /plants/:id/histories` — 이력 생성. `type`(HISTORY_TYPE code), `description`, `performedAt`, `title`, `amount` 지원. 동일 RBAC.
+- `PUT /histories/:id`, `DELETE /histories/:id` — 이력 수정/삭제. PlantHistory에 soft delete 컬럼 없어 **물리 삭제**.
+- `GET /plants/:id/images` — 동일 RBAC. `imageType` 필터 및 페이지네이션 지원.
+- `POST /plants/:id/images` — URL(`url`/`imageUrl`) + `imageType` 등록. multer 미사용.
+- `PUT /images/:id`, `DELETE /images/:id` — 메타 수정/삭제. PlantImage **물리 삭제**.
+- `GET /histories/recent?type=REPOT&limit=5` — 최신 이력 조회.
+- `GET /images/recent?limit=5`, `GET /images` — 사진관리 목록.
+
+**User API**
+
+- `GET /users`, `GET /users/:id`, `PUT /users/:id`, `DELETE /users/:id` — 전부 `authenticate` + `requireRole('ADMIN')`, CUSTOMER/STAFF는 `403`
+- `GET /users` — `q`(이메일/이름/전화 검색), `role`, `includeInactive` 쿼리 지원
+- `PUT /users/:id` — `name`/`phone`/`role`/`isActive` 변경. 본인 역할을 ADMIN 이외로 내리거나 본인을 비활성화하는 것은 차단. 마지막 활성 ADMIN의 역할 변경·비활성화·삭제도 차단
+- `DELETE /users/:id` — `isActive=false` soft delete(물리 삭제 없음). 본인 삭제 불가
+- 응답 DTO에 `passwordHash` 미포함(`userRepository.findById` select 제한)
+
+**QR API**
+
+- `GET /qr/list?plantId=&q=&limit=` — QR 발급 목록. CUSTOMER는 본인 소유 개체만.
+- `GET /qr/preview/:plantId` — QR 미리보기 메타(qrCode, categoryCode, sequenceNumber, publicPath). 동일 RBAC.
+
+**Settings API**
+
+- `GET /settings` — `authenticate` + `requireRole('ADMIN', 'STAFF')`
+- `PUT /settings` — `requireRole('ADMIN')`. `serviceName`, `defaultLanguage`, `defaultPlantStatusCode`, 알림 플래그, `qrCodeDigits`, `labelPaperSize` 지원
+- `SystemSettings` 모델(id='default' 싱글톤) — seed upsert 포함
+
+**CommonCode / Public API**
+
+- `GET /common-codes?groupCode=` — 조회 전용, 인증 미적용. `description`/`isActive` 필드 포함. 생성/수정/삭제 API는 아직 없음
+
+**Cart API**
+
+- `GET /cart` — 본인 장바구니 조회 (`authenticate` 필수)
+- `POST /cart/items` — `{ plantId | qrCode, quantity }` 추가 (동일 plant는 quantity 증가)
+- `PUT /cart/items/:id`, `DELETE /cart/items/:id`, `DELETE /cart/clear`
+- FOR_SALE 상태 Plant만 추가 가능
+
+**Public API**
+
+- `GET /public/plants` — 공개 판매 목록 (기본 status=FOR_SALE). `categoryId`, `speciesId`, `status`, `q`, `page`, `limit`
+- `GET /public/plants/:qrCode` — 인증 불필요. `latestImage`/`latestHistory`(최신 1건) 포함. 관리자 전용 필드는 Prisma `select` 단계부터 조회하지 않음
 
 ## 4. 프론트 상태
 
@@ -85,13 +162,23 @@
 - **AdminHeader** — mock 사용자 대신 `useAuthStore().user`(실제 로그인 사용자)를 표시하고 로그아웃 버튼 추가.
 - **실질적 영향**: 서버의 `/plants` 인증 요구와 프론트 로그인 계층이 이제 맞물려 동작한다 — 로그인 없이 `/admin/*` 진입 시도 → `/login`으로 이동, 로그인 성공 시 정상적으로 Plant API 연동 화면 사용 가능.
 - **Plant 목록/상세/등록** — `stores/plant.ts` → `api/plant.api.ts` → `GET/POST /plants` 실 연동 완료. 검색/상태 필터는 이제 `GET /common-codes?groupCode=PLANT_STATUS`로, 카테고리 필터는 `GET /species`로 옵션을 채운다(`speciesId → categoryCode` 매핑으로 실제 필터링도 동작). 페이지네이션은 클라이언트에서 처리(넉넉한 limit으로 전체를 가져온 뒤 재사용).
-- **CommonCode** — 이번 세션에서 Mock 카드 나열 구조를 걷어내고 `GET /common-codes` 실 API로 전환. 좌측 그룹 Grid + 우측 코드 Grid + 검색(디바운스 300ms) 구조로 리팩토링 완료.
-- **나머지 화면(Species/Location/Photo/QR/User/Settings/Dashboard, 모바일 Public 3종)** — 전부 `client/src/mock/*.mock.ts` 더미 데이터로 렌더링, 서버 API 연동 없음.
-- `SpeciesDetailView`는 예외적으로 보유 개체 목록만 `plantStore`(API)를 참조하고, 품종 상세 정보 자체는 여전히 mock(`speciesStore`)에서 가져온다.
+- **CommonCode** — Mock 카드 나열 구조를 걷어내고 `GET /common-codes` 실 API로 전환. 좌측 그룹 Grid + 우측 코드 Grid + 검색(디바운스 300ms) 구조로 리팩토링 완료.
+- **Species(목록/상세/등록/수정/삭제)** — `stores/species.ts` → `api/species.api.ts` → `GET/POST/PUT/DELETE /species` 전부 실 연동(mock 0%). 목록의 카테고리 필터 옵션은 별도 PlantCategory API가 없어 조회된 품종에서 실제 등장한 카테고리만 추출해 구성(Plant 목록 화면과 동일 패턴). "보유 개체 수"는 API 응답에 없어 `plantStore.plants`를 `species.id` 기준으로 집계해 합성한다. `+ 품종 등록` 버튼과 카드별 "수정"/"삭제" 버튼을 `SpeciesFormModal.vue`(공용 `components/common/Modal.vue` 기반)로 구현했고, ADMIN/STAFF(`useAuthStore().hasRole`)에게만 노출된다. 삭제는 `confirm()` 확인 후 `DELETE /species/:id` 호출(서버가 `isActive=false`로 soft delete) → 성공 시 목록 refetch. 등록/수정 성공·실패 모두 `formLoading`/`formError`로 표시.
+- **PlantLocation(목록/등록/수정/삭제)** — `stores/location.ts` → `api/location.api.ts` → `GET/POST/PUT/DELETE /locations` 전부 실 연동(mock 0%). 서버는 정렬된 평탄한(flat) 배열만 반환하므로, 클라이언트에서 `parentId` 기준 DFS로 재정렬하며 들여쓰기 단계(`depth`)를 계산하고(`buildOrderedTree`), "개체 수"는 `plantStore.plants`를 `location.id` 기준으로 집계해 합성한다. 등록/수정은 `LocationFormModal.vue`로 구현했고, 상위 위치(`parentId`) select에서 **수정 대상 자기 자신은 목록에서 제외**해 자기참조를 1차 차단한다(더 깊은 순환 참조는 서버 `assertValidParent`/`wouldCreateCycle`가 최종 차단하며, 위반 시 `formError`로 표시됨). CUD 성공 시 `fetchLocationList()`를 다시 호출해 `buildOrderedTree` 기반 트리가 항상 최신 상태로 재계산된다.
+- **Dashboard(전체 API 연동 완료)** — `stores/dashboard.ts`가 `GET /dashboard` + `GET /histories/recent`(REPOT/SALE) + `GET /images/recent`를 병렬 호출한다. mock 의존(`mock/dashboard.mock.ts`) 완전 제거, `(Mock)` 라벨 제거. 링크의 `plantId`는 실제 API ID를 사용해 상세 화면 404 문제 해소.
+- **Photo(사진관리)** — `stores/photo.ts` → `GET/POST/DELETE` images API. `PhotoFormModal.vue`로 URL 등록, 카드별 삭제 버튼.
+- **Plant 상세 Timeline** — `stores/history.ts` → `GET/POST/DELETE` histories API. `HistoryFormModal.vue` + Timeline 삭제 버튼.
+- **User(사용자관리)** — `stores/user.ts` → `api/user.api.ts` → `GET/PUT/DELETE /users` 실 연동(mock 0%). 이름/이메일/역할/가입일/활성 상태 목록 렌더링, `UserFormModal.vue`로 역할·이름·전화 수정(ADMIN만 버튼 노출), 비활성화는 `DELETE /users/:id`(soft delete). `+ 사용자 추가`는 `POST /users` 미구현으로 비활성. `router meta.isMock: false`.
+- **QR(관리)** — `stores/qr.ts` → `GET /qr/list` + `GET /qr/preview/:plantId` + 공개 조회 검증. QR 이미지는 클라이언트 SVG(`placeholderQr`).
+- **Settings(설정)** — `stores/settings.ts` → `GET/PUT /auth/me` + `GET/PUT /settings`. ADMIN만 시스템 설정 저장.
+- **Public(`/p`)** — `stores/publicShowcase.ts` → `GET /public/plants` 쇼케이스 그리드·필터
+- **Cart** — `stores/cart.ts` → `GET/POST/PUT/DELETE /cart/*` API. `/cart`는 로그인 필수. toast + header badge
+- **Public(`/p/:qrCode`)** — `stores/publicPlant.ts` → `GET /public/plants/:qrCode`. 최근 이력 섹션 표시.
+- **AdminHeader "MOCK DATA" 배지** — 관리자 라우트 전부 `meta.isMock: false`. 배지 미표시.
 
 ## 5. DB 상태
 
-- 12개 모델, PostgreSQL, `prisma db push`로만 스키마 동기화(migration 파일 0개)
+- 13개 모델, PostgreSQL, `prisma db push`로만 스키마 동기화(migration 파일 0개)
 - **핵심 관계**: `User(1)` — `Plant(N, ownerId)` / `Species(1)` — `Plant(N)` / `CommonCode(1)` — `Plant(N, status·originType 2개 FK)` / `PlantLocation(1)` — `Plant(N)`
 - `Plant.ownerId`는 스키마상 optional FK이지만, `plant.service.ts`의 `create()`가 항상 값을 채워 넣으므로 사실상 필수처럼 동작한다.
 - Soft Delete는 `Plant.deletedAt`(타임스탬프)만 사용하고, 다른 모델(`User`, `Species`, `PlantCategory` 등)은 `isActive` boolean 패턴을 쓴다 — 모델마다 삭제 정책이 다르다.
@@ -99,14 +186,13 @@
   - `PlantCategory` 5종(CON/LTH/CAT/AFR/OTH), `CommonCode` 27종(PLANT_STATUS/HISTORY_TYPE/LOCATION_TYPE/ORIGIN_TYPE)
   - `User` 2명 — SYSTEM ADMIN(`admin@ask-plant.local`), 테스트 CUSTOMER(`customer@ask-plant.local`), 비밀번호는 bcrypt 해시로 저장
   - `Species` 5종(카테고리별 1개), `PlantLocation` 2종(온실/전시)
-  - `Plant` 3건(SYSTEM ADMIN 소유로 생성) + 기존에 `ownerId`가 없던 Plant를 SYSTEM ADMIN으로 자동 백필
+  - `Plant` 3건(SYSTEM ADMIN 소유로 생성) + `PlantImage` 6건 + `PlantHistory` 6건(입고/분갈이/개화 등) — Dashboard/Photo/History API 즉시 테스트 가능
 
 ## 6. 다음 개발 우선순위 3개
 
-1. **PlantLocation 조회 API 추가** — Species/CommonCode는 이미 조회 API가 있어 mock 제거가 가능한 반면, 위치(Location)만 API가 없어 `PlantCreateView`에 위치 선택 UI를 넣지 못하고 `LocationListView`도 mock에 묶여 있다. 남은 mock 제거 작업들의 공통 선행 조건이다.
-2. **CommonCode/Species API 인증 정책 통일** — `/plants`만 인증이 걸려 있고 `/common-codes`, `/species`는 무인증으로 남아 도메인별 보호 수준이 다르다. 로그인 연동이 끝난 지금, 이 두 API에도 `authenticate`를 적용할지 의도적으로 Public 성격을 유지할지 결정하고 일관성을 맞춰야 한다.
-3. **회원가입/사용자 관리 화면 연동** — 백엔드에 `POST /auth/register`가 있고 `UserListView`도 존재하지만 서로 연결되어 있지 않다(UserListView는 여전히 mock). 로그인 계층이 갖춰졌으니 다음 단계로 실제 사용자 CRUD 화면을 붙일 수 있다.
+1. **주문/결제 API** — 장바구니 문의 접수·주문 확정 미구현.
+2. **파일 업로드(multer/S3)** — Image 등록 URL 입력 방식.
 
 ---
 
-**결론(한 줄)**: 서버는 JWT 인증·RBAC·Public API까지 갖춘 SaaS 구조이고, 프론트도 로그인 실연동·`/auth/me` 토큰 재검증·role 확장 가능한 라우터 가드를 갖춰 인증 계층이 완성됐지만 — 7/9 관리자 화면이 여전히 mock이라 "SaaS 완성" 이전, "인증 연동 완료" 단계에 있는 프로젝트다.
+**결론(한 줄)**: 상용 MVP 마감 — Cart·Public 쇼케이스·관리자 전 기능 실 API. 결제/파일업로드만 남음.

@@ -4,6 +4,12 @@ import type { Prisma } from '@prisma/client';
 export type CommonCodeRow = Awaited<ReturnType<typeof commonCodeRepository.findMany>>[number];
 
 export const commonCodeRepository = {
+  async findByGroupAndCode(groupCode: string, code: string) {
+    return prisma.commonCode.findFirst({
+      where: { groupCode, code, isActive: true },
+    });
+  },
+
   async findMany(groupCode?: string) {
     const where: Prisma.CommonCodeWhereInput = {
       isActive: true,

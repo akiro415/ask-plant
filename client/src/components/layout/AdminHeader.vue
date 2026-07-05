@@ -11,6 +11,7 @@ const ui = useUiStore();
 const auth = useAuthStore();
 
 const pageTitle = computed(() => (route.meta.title as string) ?? 'Ask Plant');
+const isMock = computed(() => Boolean(route.meta.isMock));
 
 function handleLogout() {
   auth.logout();
@@ -23,7 +24,7 @@ function handleLogout() {
     <div class="header-left">
       <button class="header-toggle" type="button" @click="ui.toggleSidebar" aria-label="사이드바 토글">☰</button>
       <span class="header-title">{{ pageTitle }}</span>
-      <span class="header-mock-badge">MOCK DATA</span>
+      <span v-if="isMock" class="header-mock-badge">MOCK DATA</span>
     </div>
     <div class="header-right">
       <div class="header-search">

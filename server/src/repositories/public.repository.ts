@@ -8,9 +8,55 @@ const publicPlantInclude = {
   location: { select: { name: true } },
   status: { select: { code: true, name: true } },
   images: { select: { url: true, imageType: true }, orderBy: { sortOrder: 'asc' } },
+  histories: {
+    take: 1,
+    orderBy: { performedAt: 'desc' },
+    select: {
+      performedAt: true,
+      title: true,
+      historyType: { select: { code: true, name: true } },
+    },
+  },
 } satisfies Prisma.PlantInclude;
 
 export type PublicPlantRow = Prisma.PlantGetPayload<{ include: typeof publicPlantInclude }>;
+
+const publicListInclude = {
+  species: {
+    select: {
+      displayName: true,
+      category: { select: { id: true, code: true, name: true } },
+    },
+  },
+  status: { select: { code: true, name: true } },
+  images: { select: { url: true, imageType: true }, orderBy: { sortOrder: 'asc' } },
+} satisfies Prisma.PlantInclude;
+
+export type PublicPlantListRow = Prisma.PlantGetPayload<{ include: typeof publicListInclude }>;
+
+export interface PublicListFilters {
+  categoryId?: string;
+  speciesId?: string;
+  statusCode: string;
+  q?: string;
+}
+
+function buildPublicListWhere(filters: PublicListFilters): Prisma.PlantWhereInput {
+  const where: Prisma.PlantWhereInput = {
+    deletedAt: null,
+    status: { code: filters.statusCode },
+  };
+  if (filters.speciesId) where.speciesId = filters.speciesId;
+  if (filters.categoryId) where.species = { categoryId: filters.categoryId };
+  if (filters.q) {
+    where.OR = [
+      { nickname: { contains: filters.q, mode: 'insensitive' } },
+      { qrCode: { contains: filters.q, mode: 'insensitive' } },
+      { species: { displayName: { contains: filters.q, mode: 'insensitive' } } },
+    ];
+  }
+  return where;
+}
 
 export const publicRepository = {
   /** DISCARDED 상태 개체는 QR 조회 결과에서 완전히 숨긴다 (docs/api-specification.md 12장). */
@@ -19,5 +65,22 @@ export const publicRepository = {
       where: { qrCode, deletedAt: null, status: { code: { not: 'DISCARDED' } } },
       include: publicPlantInclude,
     });
+  },
+
+  async findManyPublic(
+    filters: PublicListFilters,
+    pagination: { page: number; limit: number },
+  ): Promise<PublicPlantListRow[]> {
+    return prisma.plant.findMany({
+      where: buildPublicListWhere(filters),
+      include: publicListInclude,
+      orderBy: { createdAt: 'desc' },
+      skip: (pagination.page - 1) * pagination.limit,
+      take: pagination.limit,
+    });
+  },
+
+  async countPublic(filters: PublicListFilters): Promise<number> {
+    return prisma.plant.count({ where: buildPublicListWhere(filters) });
   },
 };

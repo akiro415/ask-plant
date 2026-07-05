@@ -1,20 +1,75 @@
 <script setup lang="ts">
+import { onMounted, ref } from 'vue';
 import { useLocationStore } from '@/stores/location';
+import { usePlantStore } from '@/stores/plant';
+import { useAuthStore } from '@/stores/auth';
+import type { PlantLocation } from '@/types/location';
 import PageHeader from '@/components/common/PageHeader.vue';
+import EmptyState from '@/components/common/EmptyState.vue';
+import LocationFormModal from './LocationFormModal.vue';
 
 const store = useLocationStore();
+const plantStore = usePlantStore();
+const auth = useAuthStore();
+
+const canManage = () => auth.hasRole('ADMIN', 'STAFF');
+
+onMounted(() => {
+  store.fetchLocationList();
+  // 위치별 "개체 수" 계산에 필요 — 목록 화면을 거치지 않고 바로 진입해도 값이 채워지도록 최초 1회 로드를 보장한다.
+  plantStore.ensurePlantsLoaded();
+});
+
+const showForm = ref(false);
+const editingLocation = ref<PlantLocation | null>(null);
+
+function openCreate() {
+  editingLocation.value = null;
+  showForm.value = true;
+}
+
+function openEdit(location: PlantLocation) {
+  editingLocation.value = location;
+  showForm.value = true;
+}
+
+function closeForm() {
+  showForm.value = false;
+  editingLocation.value = null;
+}
+
+function handleSaved() {
+  closeForm();
+}
+
+async function handleDelete(location: PlantLocation) {
+  if (!confirm(`'${location.name}' 위치를 삭제하시겠습니까?\n(사용 중인 개체가 있는 경우 비활성화만 되며 데이터는 유지됩니다)`)) return;
+  await store.deleteLocation(location.id);
+}
 </script>
 
 <template>
   <div>
     <PageHeader title="위치관리" subtitle="온실 &gt; 구역 &gt; 선반의 계층 구조와 지도 좌표를 관리합니다.">
       <template #actions>
-        <button type="button" class="btn btn-primary" disabled title="Mock 화면에서는 비활성화됩니다">+ 위치 등록</button>
+        <button v-if="canManage()" type="button" class="btn btn-primary" @click="openCreate">+ 위치 등록</button>
       </template>
     </PageHeader>
 
+    <p v-if="store.deleteError" class="form-error">{{ store.deleteError }}</p>
+
     <div class="panel">
-      <div class="data-table-wrapper">
+      <div v-if="store.listLoading" class="table-empty">
+        <EmptyState message="위치 목록을 불러오는 중입니다..." icon="⏳" />
+      </div>
+      <div v-else-if="store.listError" class="table-empty">
+        <EmptyState :message="store.listError" icon="⚠️" />
+        <div class="table-empty-actions"><button type="button" class="btn btn-outline btn-sm" @click="store.fetchLocationList">다시 시도</button></div>
+      </div>
+      <div v-else-if="store.locations.length === 0" class="table-empty">
+        <EmptyState message="등록된 위치가 없습니다." icon="📍" />
+      </div>
+      <div v-else class="data-table-wrapper">
         <table class="data-table">
           <thead>
             <tr>
@@ -24,6 +79,7 @@ const store = useLocationStore();
               <th>상위 위치</th>
               <th>지도 좌표</th>
               <th>개체 수</th>
+              <th v-if="canManage()">관리</th>
             </tr>
           </thead>
           <tbody>
@@ -42,11 +98,24 @@ const store = useLocationStore();
                 <span v-else class="text-muted">-</span>
               </td>
               <td>{{ loc.plantCount }}개</td>
+              <td v-if="canManage()" class="location-row-actions">
+                <button type="button" class="btn btn-outline btn-sm" @click="openEdit(loc)">수정</button>
+                <button
+                  type="button"
+                  class="btn btn-outline btn-sm btn-danger-outline"
+                  :disabled="store.deleteLoadingId === loc.id"
+                  @click="handleDelete(loc)"
+                >
+                  {{ store.deleteLoadingId === loc.id ? '삭제 중...' : '삭제' }}
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
+
+    <LocationFormModal v-if="showForm" :location="editingLocation" @close="closeForm" @saved="handleSaved" />
 
     <div class="panel location-map-note">
       <h2 class="info-card-title">지도 미리보기 (Mock)</h2>
@@ -68,6 +137,16 @@ const store = useLocationStore();
   color: var(--color-text-muted);
 }
 
+.table-empty {
+  padding: 1rem 0;
+}
+
+.table-empty-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: -1rem;
+}
+
 .info-card-title {
   font-size: 0.95rem;
   font-weight: 700;
@@ -77,5 +156,25 @@ const store = useLocationStore();
 
 .location-map-note {
   margin-top: 1.25rem;
+}
+
+.location-row-actions {
+  display: flex;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.btn-danger-outline {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.form-error {
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-size: 0.85rem;
 }
 </style>

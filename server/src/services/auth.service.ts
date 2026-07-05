@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import { userRepository } from '../repositories/user.repository';
 import { signAccessToken } from '../lib/jwt';
 import { ConflictError, NotFoundError, UnauthorizedError } from '../middleware/errorHandler';
-import type { RegisterInput, LoginInput } from '../schemas/auth.schema';
+import type { RegisterInput, LoginInput, UpdateMeInput } from '../schemas/auth.schema';
 import type { User } from '@prisma/client';
 
 const SALT_ROUNDS = 10;
@@ -22,7 +22,7 @@ export interface LoginResultDto {
   user: Pick<UserProfileDto, 'id' | 'email' | 'name' | 'role'>;
 }
 
-function toProfileDto(user: User): UserProfileDto {
+function toProfileDto(user: Pick<User, 'id' | 'email' | 'name' | 'phone' | 'role' | 'createdAt'>): UserProfileDto {
   return {
     id: user.id,
     email: user.email,
@@ -78,5 +78,15 @@ export const authService = {
       throw new NotFoundError('사용자를 찾을 수 없습니다');
     }
     return toProfileDto(user);
+  },
+
+  /** 본인 프로필 수정 — name/phone만 변경 가능 */
+  async updateMe(id: string, input: UpdateMeInput): Promise<UserProfileDto> {
+    const existing = await userRepository.findById(id);
+    if (!existing) {
+      throw new NotFoundError('사용자를 찾을 수 없습니다');
+    }
+    const updated = await userRepository.update(id, input);
+    return toProfileDto(updated);
   },
 };

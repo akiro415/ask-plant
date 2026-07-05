@@ -126,9 +126,29 @@ export const LOCATION_SEEDS = [
 // Plant CRUD API 즉시 테스트용 개체 3건
 // status=IN_STOCK, originType=PURCHASE, deletedAt=null 고정
 export const PLANT_SEEDS = [
-  { id: 'seed-plant-1', nickname: 'Test Plant 1', speciesId: 'seed-species-con', locationCode: 'SEED-GREENHOUSE-01' },
-  { id: 'seed-plant-2', nickname: 'Test Plant 2', speciesId: 'seed-species-lth', locationCode: 'SEED-GREENHOUSE-01' },
-  { id: 'seed-plant-3', nickname: 'Test Plant 3', speciesId: 'seed-species-cat', locationCode: 'SEED-DISPLAY-01' },
+  { id: 'seed-plant-1', nickname: 'Test Plant 1', speciesId: 'seed-species-con', locationCode: 'SEED-GREENHOUSE-01', statusCode: 'FOR_SALE', sellingPrice: 35000 },
+  { id: 'seed-plant-2', nickname: 'Test Plant 2', speciesId: 'seed-species-lth', locationCode: 'SEED-GREENHOUSE-01', statusCode: 'FOR_SALE', sellingPrice: 28000 },
+  { id: 'seed-plant-3', nickname: 'Test Plant 3', speciesId: 'seed-species-cat', locationCode: 'SEED-DISPLAY-01', statusCode: 'IN_STOCK', sellingPrice: null },
+] as const;
+
+/** PlantImage 테스트 데이터 — 사진관리/Dashboard 최근 사진 API 검증용 */
+export const IMAGE_SEEDS = [
+  { id: 'seed-img-1', plantId: 'seed-plant-1', url: 'https://placehold.co/400x400/40916c/ffffff?text=Plant1', imageType: 'PRIMARY' as const, isPrimary: true, sortOrder: 0 },
+  { id: 'seed-img-2', plantId: 'seed-plant-1', url: 'https://placehold.co/400x400/52b788/ffffff?text=Repot1', imageType: 'OTHER' as const, isPrimary: false, sortOrder: 1 },
+  { id: 'seed-img-3', plantId: 'seed-plant-2', url: 'https://placehold.co/400x400/74c69d/ffffff?text=Plant2', imageType: 'PRIMARY' as const, isPrimary: true, sortOrder: 0 },
+  { id: 'seed-img-4', plantId: 'seed-plant-2', url: 'https://placehold.co/400x400/2d6a4f/ffffff?text=Repot2', imageType: 'OTHER' as const, isPrimary: false, sortOrder: 1 },
+  { id: 'seed-img-5', plantId: 'seed-plant-3', url: 'https://placehold.co/400x400/1b4332/ffffff?text=Plant3', imageType: 'PRIMARY' as const, isPrimary: true, sortOrder: 0 },
+  { id: 'seed-img-6', plantId: 'seed-plant-3', url: 'https://placehold.co/400x400/d8a48f/ffffff?text=Flower3', imageType: 'FLOWER' as const, isPrimary: false, sortOrder: 1 },
+] as const;
+
+/** PlantHistory 테스트 데이터 — Dashboard 최근 분갈이/판매 및 이력 API 검증용 */
+export const HISTORY_SEEDS = [
+  { id: 'seed-hist-1', plantId: 'seed-plant-1', historyTypeCode: 'ACQUISITION', title: '입고', description: '구매로 입고', performedAtDaysAgo: 30, imageId: null as string | null },
+  { id: 'seed-hist-2', plantId: 'seed-plant-1', historyTypeCode: 'REPOT', title: '분갈이', description: '2호 화분으로 이식', performedAtDaysAgo: 3, imageId: 'seed-img-2' },
+  { id: 'seed-hist-3', plantId: 'seed-plant-2', historyTypeCode: 'ACQUISITION', title: '입고', description: '구매로 입고', performedAtDaysAgo: 25, imageId: null },
+  { id: 'seed-hist-4', plantId: 'seed-plant-2', historyTypeCode: 'REPOT', title: '분갈이', description: '3호 화분으로 이식', performedAtDaysAgo: 5, imageId: 'seed-img-4' },
+  { id: 'seed-hist-5', plantId: 'seed-plant-3', historyTypeCode: 'ACQUISITION', title: '입고', description: '구매로 입고', performedAtDaysAgo: 20, imageId: null },
+  { id: 'seed-hist-6', plantId: 'seed-plant-3', historyTypeCode: 'FLOWERING', title: '개화', description: '꽃이 피었습니다', performedAtDaysAgo: 2, imageId: 'seed-img-6' },
 ] as const;
 
 // 멀티유저 SaaS RBAC 검증용 계정.

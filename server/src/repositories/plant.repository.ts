@@ -86,6 +86,13 @@ export const plantRepository = {
     return prisma.plant.findFirst({ where: { id, deletedAt: null }, include: detailInclude });
   },
 
+  async findByQrCode(qrCode: string): Promise<{ id: string; deletedAt: Date | null } | null> {
+    return prisma.plant.findUnique({
+      where: { qrCode },
+      select: { id: true, deletedAt: true },
+    });
+  },
+
   async findSpeciesCategoryPrefix(speciesId: string): Promise<string | null> {
     const species = await prisma.species.findUnique({
       where: { id: speciesId },

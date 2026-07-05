@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { plantController } from '../controllers/plant.controller';
+import { historyController } from '../controllers/history.controller';
+import { imageController } from '../controllers/image.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -8,6 +10,10 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', plantController.getAll);
+router.get('/:id/histories', historyController.getByPlantId);
+router.post('/:id/histories', historyController.createByPlantId);
+router.get('/:id/images', imageController.getByPlantId);
+router.post('/:id/images', imageController.createByPlantId);
 router.get('/:id', plantController.getById);
 router.post('/', plantController.create);
 router.put('/:id', plantController.update);

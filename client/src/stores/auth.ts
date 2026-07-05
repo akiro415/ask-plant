@@ -41,6 +41,12 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem(USER_STORAGE_KEY);
   }
 
+  /** 다른 스토어(설정 등)에서 GET/PUT /auth/me 후 세션 사용자 정보를 동기화할 때 사용한다. */
+  function syncUser(nextUser: AuthUser) {
+    user.value = nextUser;
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser));
+  }
+
   /** POST /auth/login 성공 시 세션(JWT + 사용자 정보)을 저장한다. */
   async function login(email: string, password: string): Promise<boolean> {
     loginLoading.value = true;
@@ -98,5 +104,6 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     fetchMe,
+    syncUser,
   };
 });

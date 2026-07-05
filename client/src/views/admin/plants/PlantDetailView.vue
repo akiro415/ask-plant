@@ -1,19 +1,24 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { usePlantStore } from '@/stores/plant';
+import { useHistoryStore } from '@/stores/history';
 import { useUiStore } from '@/stores/ui';
 import ImageGallery from '@/components/common/ImageGallery.vue';
 import StatusBadge from '@/components/common/StatusBadge.vue';
 import Timeline from '@/components/common/Timeline.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
+import HistoryFormModal from './HistoryFormModal.vue';
 import { placeholderQr } from '@/utils/placeholder';
 import { formatCurrency, formatDate } from '@/utils/format';
 
 const route = useRoute();
 const router = useRouter();
 const store = usePlantStore();
+const historyStore = useHistoryStore();
 const ui = useUiStore();
+
+const showHistoryForm = ref(false);
 
 const loading = computed(() => store.detailLoading);
 const error = computed(() => store.detailError);
@@ -23,9 +28,17 @@ const qrImage = computed(() => (plant.value ? placeholderQr(plant.value.qrCode) 
 
 function load() {
   ui.setBreadcrumbExtra(null);
-  store.fetchPlantById(String(route.params.id)).then(() => {
+  const plantId = String(route.params.id);
+  store.fetchPlantById(plantId).then(() => {
     ui.setBreadcrumbExtra(plant.value ? plant.value.qrCode : null);
   });
+  historyStore.fetchByPlantId(plantId);
+}
+
+async function handleDeleteHistory(id: string) {
+  if (!plant.value) return;
+  if (!confirm('이 이력을 삭제하시겠습니까?')) return;
+  await historyStore.deleteHistory(id, plant.value.id);
 }
 
 onMounted(load);
@@ -120,9 +133,24 @@ watch(() => route.params.id, load);
     </div>
 
     <section class="panel timeline-panel">
-      <h2 class="info-card-title">Timeline (이력)</h2>
-      <Timeline :histories="plant.histories" />
+      <div class="timeline-panel-header">
+        <h2 class="info-card-title">Timeline (이력)</h2>
+        <button type="button" class="btn btn-outline btn-sm" @click="showHistoryForm = true">+ 이력 추가</button>
+      </div>
+      <p v-if="historyStore.deleteError" class="form-error">{{ historyStore.deleteError }}</p>
+      <div v-if="historyStore.listLoading" class="timeline-loading">
+        <EmptyState message="이력을 불러오는 중..." icon="⏳" />
+      </div>
+      <Timeline
+        v-else
+        :histories="historyStore.histories"
+        show-actions
+        :delete-loading-id="historyStore.deleteLoadingId"
+        @delete="handleDeleteHistory"
+      />
     </section>
+
+    <HistoryFormModal v-if="showHistoryForm && plant" :plant-id="plant.id" @close="showHistoryForm = false" @saved="showHistoryForm = false" />
   </div>
 
   <EmptyState v-else message="해당 개체를 찾을 수 없습니다." icon="🔍" />
@@ -238,5 +266,29 @@ watch(() => route.params.id, load);
 
 .timeline-panel {
   margin-top: 0.5rem;
+}
+
+.timeline-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.9rem;
+}
+
+.timeline-panel-header .info-card-title {
+  margin-bottom: 0;
+}
+
+.timeline-loading {
+  padding: 0.5rem 0;
+}
+
+.form-error {
+  margin-bottom: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-size: 0.85rem;
 }
 </style>

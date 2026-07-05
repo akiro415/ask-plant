@@ -5,7 +5,14 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
+  phone?: string | null;
   role: UserRole;
+  createdAt?: string;
+}
+
+export interface UpdateMePayload {
+  name?: string;
+  phone?: string | null;
 }
 
 export interface LoginPayload {
@@ -37,6 +44,12 @@ export const authApi = {
   /** GET /auth/me — 인증 필요, 토큰 유효성 재확인 및 최신 프로필 조회용. */
   async me(): Promise<AuthUser> {
     const { data } = await httpClient.get<MeResponse>('/auth/me');
+    return data.data;
+  },
+
+  /** PUT /auth/me — 본인 name/phone 수정 */
+  async updateMe(payload: UpdateMePayload): Promise<AuthUser> {
+    const { data } = await httpClient.put<MeResponse>('/auth/me', payload);
     return data.data;
   },
 };

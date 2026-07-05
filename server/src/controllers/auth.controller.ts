@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from '../services/auth.service';
-import { registerSchema, loginSchema } from '../schemas/auth.schema';
+import { registerSchema, loginSchema, updateMeSchema } from '../schemas/auth.schema';
 import { UnauthorizedError } from '../middleware/errorHandler';
 
 export const authController = {
@@ -30,6 +30,19 @@ export const authController = {
         throw new UnauthorizedError('인증이 필요합니다');
       }
       const user = await authService.getMe(req.user.id);
+      res.json({ data: user });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async updateMe(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedError('인증이 필요합니다');
+      }
+      const data = updateMeSchema.parse(req.body);
+      const user = await authService.updateMe(req.user.id, data);
       res.json({ data: user });
     } catch (error) {
       next(error);

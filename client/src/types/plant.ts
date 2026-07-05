@@ -1,13 +1,19 @@
-import type { CommonCode, PlantCategory } from './common';
+import type { CommonCode } from './common';
 import type { PlantImage } from './image';
 import type { PlantHistory } from './history';
+
+export interface PlantSpeciesCategoryRef {
+  id: string;
+  code: string;
+  name: string;
+}
 
 export interface PlantSpeciesRef {
   id: string;
   displayName: string;
   scientificName: string | null;
   koreanName: string | null;
-  category: PlantCategory | null;
+  category: PlantSpeciesCategoryRef | null;
 }
 
 export interface PlantLocationRef {

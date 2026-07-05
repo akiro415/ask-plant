@@ -16,5 +16,14 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'password는 필수입니다'),
 });
 
+/** PUT /auth/me — 본인 name/phone만 수정 가능 */
+export const updateMeSchema = z
+  .object({
+    name: z.string().trim().min(1, 'name은 필수입니다').optional(),
+    phone: z.string().trim().min(1).nullable().optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, { message: '수정할 필드가 하나 이상 필요합니다' });
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type UpdateMeInput = z.infer<typeof updateMeSchema>;
