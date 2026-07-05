@@ -19,7 +19,11 @@ const plants = computed(() => plantStore.plants.filter((p) => p.species.id === s
 function sync() {
   ui.setBreadcrumbExtra(species.value?.displayName ?? null);
 }
-onMounted(sync);
+onMounted(() => {
+  sync();
+  // Plant 목록은 이제 API로 조회되므로, 목록 화면을 거치지 않고 바로 진입해도 보유 개체가 보이도록 최초 1회 로드를 보장한다.
+  plantStore.ensurePlantsLoaded();
+});
 watch(() => route.params.id, sync);
 </script>
 

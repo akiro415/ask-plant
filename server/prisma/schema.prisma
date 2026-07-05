@@ -189,8 +189,9 @@ model PlantLocation {
 
 // ─────────────────────────────────────────────
 // 개체 (Plant) — QR로 식별되는 개별 다육
-// qrCode: QrSequence + Species.qrPrefix 로 발급
+// qrCode: QrSequence + Species.category.code 로 발급
 // parentPlantId: 삽목·분지·접목 등 번식 원본 개체
+// deletedAt: Soft Delete — null이면 정상, 값이 있으면 삭제 처리된 개체 (RULES.md 기준)
 // ─────────────────────────────────────────────
 model Plant {
   id             String     @id @default(cuid())
@@ -209,6 +210,7 @@ model Plant {
   potSize        String?
   memo           String?
   soldAt         DateTime?
+  deletedAt      DateTime?
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
@@ -229,6 +231,7 @@ model Plant {
   @@index([parentPlantId])
   @@index([statusId])
   @@index([originTypeId])
+  @@index([deletedAt])
   @@map("plants")
 }
 

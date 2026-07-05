@@ -1,5 +1,5 @@
 # Ask Plant
-
+CHANGELOG / SUMMARY / 설명 모두 한국어로만 작성
 ## 목적
 
 다육식물 컬렉션을 관리하는 모바일 웹 시스템

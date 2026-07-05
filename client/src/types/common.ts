@@ -3,7 +3,9 @@ export interface CommonCode {
   groupCode: string;
   code: string;
   name: string;
+  description?: string | null;
   sortOrder: number;
+  isActive?: boolean;
 }
 
 export interface PlantCategory {

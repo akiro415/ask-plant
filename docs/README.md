@@ -4,8 +4,10 @@
 
 | 문서 | 설명 |
 |------|------|
+| [프로젝트 현재 상태](./STATUS.md) | 지금 실제로 구현/동작하는 범위 스냅샷 (구현 기능, 서버/DB/프론트 구조, 미완료 항목, 다음 단계) |
 | [DB 명세서](./db-specification.md) | 테이블, Enum, CommonCode, 관계, ERD, QR 규칙 (v1.1) |
 | [API 명세서](./api-specification.md) | REST API — Swagger(OpenAPI) 스타일, MVP / 향후 확장 구분 (v1.1) |
+| [CHANGELOG](./CHANGELOG.md) | 작업 완료 시마다 기록되는 변경 이력 |
 
 > 기준: `server/prisma/schema.prisma` (Prisma 6.x / PostgreSQL)
 >

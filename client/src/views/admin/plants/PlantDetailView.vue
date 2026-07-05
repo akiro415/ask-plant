@@ -15,20 +15,34 @@ const router = useRouter();
 const store = usePlantStore();
 const ui = useUiStore();
 
-const plant = computed(() => store.getDetail(String(route.params.id)));
+const loading = computed(() => store.detailLoading);
+const error = computed(() => store.detailError);
+const plant = computed(() => store.currentPlant);
 const children = computed(() => (plant.value ? store.getChildren(plant.value.id) : []));
 const qrImage = computed(() => (plant.value ? placeholderQr(plant.value.qrCode) : ''));
 
-function syncBreadcrumb() {
-  ui.setBreadcrumbExtra(plant.value ? plant.value.qrCode : null);
+function load() {
+  ui.setBreadcrumbExtra(null);
+  store.fetchPlantById(String(route.params.id)).then(() => {
+    ui.setBreadcrumbExtra(plant.value ? plant.value.qrCode : null);
+  });
 }
 
-onMounted(syncBreadcrumb);
-watch(() => route.params.id, syncBreadcrumb);
+onMounted(load);
+watch(() => route.params.id, load);
 </script>
 
 <template>
-  <div v-if="plant">
+  <div v-if="loading" class="panel detail-status-panel">
+    <EmptyState message="개체 정보를 불러오는 중입니다..." icon="⏳" />
+  </div>
+
+  <div v-else-if="error" class="panel detail-status-panel">
+    <EmptyState :message="error" icon="⚠️" />
+    <div class="detail-status-actions"><button type="button" class="btn btn-outline btn-sm" @click="load">다시 시도</button></div>
+  </div>
+
+  <div v-else-if="plant">
     <div class="page-header-row">
       <div>
         <h1>{{ plant.species.displayName }}</h1>
@@ -115,6 +129,16 @@ watch(() => route.params.id, syncBreadcrumb);
 </template>
 
 <style scoped>
+.detail-status-panel {
+  margin-top: 0.5rem;
+}
+
+.detail-status-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: -1rem;
+}
+
 .detail-actions {
   display: flex;
   align-items: center;
