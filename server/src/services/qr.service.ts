@@ -1,5 +1,6 @@
+import { assertOwnerAccess, ownerScopeFilter } from '../lib/rbac';
 import { qrRepository, type QrPlantRow } from '../repositories/qr.repository';
-import { ForbiddenError, NotFoundError } from '../middleware/errorHandler';
+import { NotFoundError } from '../middleware/errorHandler';
 import type { ListQrQuery } from '../schemas/qr.schema';
 import type { AuthenticatedUser } from '../types/express';
 
@@ -26,7 +27,7 @@ export interface QrPreviewDto {
 }
 
 function ownerFilter(requestUser: AuthenticatedUser): string | undefined {
-  return requestUser.role === 'CUSTOMER' ? requestUser.id : undefined;
+  return ownerScopeFilter(requestUser);
 }
 
 function parseSequenceNumber(qrCode: string, categoryCode: string): string {
@@ -67,9 +68,7 @@ function toPreview(row: QrPlantRow): QrPreviewDto {
 async function assertCanAccessPlant(plantId: string, requestUser: AuthenticatedUser): Promise<QrPlantRow> {
   const row = await qrRepository.findById(plantId);
   if (!row) throw new NotFoundError('개체를 찾을 수 없습니다');
-  if (requestUser.role === 'CUSTOMER' && row.ownerId !== requestUser.id) {
-    throw new ForbiddenError('본인 소유의 개체만 접근할 수 있습니다');
-  }
+  assertOwnerAccess(row.ownerId, requestUser);
   return row;
 }
 

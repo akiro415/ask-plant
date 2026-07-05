@@ -24,8 +24,14 @@ export const useAuthStore = defineStore('auth', () => {
   const meChecked = ref(false);
 
   const isAuthenticated = computed(() => Boolean(token.value));
-  /** ADMIN/STAFF/CUSTOMER 역할 확장을 대비한 헬퍼 — role 기반 라우터/UI 분기에서 재사용한다. */
   const hasRole = (...roles: AuthUser['role'][]) => Boolean(user.value && roles.includes(user.value.role));
+  const isAdmin = computed(() => user.value?.role === 'ADMIN');
+  const isStaff = computed(() => user.value?.role === 'STAFF');
+  const isCustomer = computed(() => user.value?.role === 'CUSTOMER');
+  /** ADMIN / STAFF — 전체 운영 (유저 관리 제외는 canManageUsers) */
+  const isOperator = computed(() => hasRole('ADMIN', 'STAFF'));
+  const canManageUsers = computed(() => user.value?.role === 'ADMIN');
+  const defaultAdminPath = computed(() => (isCustomer.value ? '/admin/plants' : '/admin/dashboard'));
 
   function setSession(nextToken: string, nextUser: AuthUser) {
     token.value = nextToken;
@@ -101,6 +107,12 @@ export const useAuthStore = defineStore('auth', () => {
     meChecked,
     isAuthenticated,
     hasRole,
+    isAdmin,
+    isStaff,
+    isCustomer,
+    isOperator,
+    canManageUsers,
+    defaultAdminPath,
     login,
     logout,
     fetchMe,

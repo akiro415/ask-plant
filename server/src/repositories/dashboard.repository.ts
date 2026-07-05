@@ -58,4 +58,47 @@ export const dashboardRepository = {
       select: recentPlantSelect,
     });
   },
+
+  async countActiveCustomers(): Promise<number> {
+    return prisma.user.count({ where: { role: 'CUSTOMER', isActive: true } });
+  },
+
+  /** STAFF를 제외한 활성 사용자 수 (ADMIN + CUSTOMER) */
+  async countNonStaffUsers(): Promise<number> {
+    return prisma.user.count({ where: { role: { not: 'STAFF' }, isActive: true } });
+  },
+
+  async plantCountByOwner(): Promise<{ ownerId: string; count: number }[]> {
+    const rows = await prisma.plant.groupBy({
+      by: ['ownerId'],
+      where: { deletedAt: null },
+      _count: { _all: true },
+    });
+    return rows.map((r) => ({ ownerId: r.ownerId, count: r._count._all }));
+  },
+
+  async salesTotalByOwner(): Promise<{ ownerId: string; total: number }[]> {
+    const saleType = await prisma.commonCode.findFirst({
+      where: { groupCode: 'HISTORY_TYPE', code: 'SALE' },
+      select: { id: true },
+    });
+    if (!saleType) return [];
+
+    const rows = await prisma.plantHistory.groupBy({
+      by: ['ownerId'],
+      where: { historyTypeId: saleType.id },
+      _sum: { amount: true },
+    });
+    return rows.map((r) => ({ ownerId: r.ownerId, total: Number(r._sum.amount ?? 0) }));
+  },
+
+  async findUsersByIds(ids: string[]): Promise<
+    { id: string; name: string; email: string; role: string; updatedAt: Date }[]
+  > {
+    if (ids.length === 0) return [];
+    return prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, name: true, email: true, role: true, updatedAt: true },
+    });
+  },
 };

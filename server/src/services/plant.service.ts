@@ -1,13 +1,16 @@
+import {
+  assertOwnerAccess,
+  ownerScopeFilter,
+  resolveCreateOwnerId,
+  sanitizePlantUpdateForRole,
+} from '../lib/rbac';
 import { plantRepository, type PlantListRow, type PlantDetailRow } from '../repositories/plant.repository';
 import { NotFoundError, ValidationAppError, ForbiddenError } from '../middleware/errorHandler';
 import type { CreatePlantInput, UpdatePlantInput, ListPlantQuery } from '../schemas/plant.schema';
 import type { AuthenticatedUser } from '../types/express';
 
-/** CUSTOMER는 본인 소유 개체만 접근 가능, ADMIN/STAFF는 전체 접근 가능 (RBAC) */
 function assertCanAccess(row: Pick<PlantDetailRow, 'owner'>, requestUser: AuthenticatedUser): void {
-  if (requestUser.role === 'CUSTOMER' && row.owner?.id !== requestUser.id) {
-    throw new ForbiddenError('본인 소유의 개체만 접근할 수 있습니다');
-  }
+  assertOwnerAccess(row.owner?.id, requestUser);
 }
 
 export interface CommonCodeDto {
@@ -45,6 +48,7 @@ export interface PlantDetailDto extends PlantSummaryDto {
   soldAt: Date | null;
   parentPlant: { id: string; qrCode: string; displayName: string } | null;
   owner: { id: string; name: string; email: string } | null;
+  isPublic: boolean;
   images: { id: string; url: string; imageType: string; isPrimary: boolean }[];
   recentHistories: {
     id: string;
@@ -152,6 +156,7 @@ function toDetailDto(row: PlantDetailRow): PlantDetailDto {
       ? { id: row.parentPlant.id, qrCode: row.parentPlant.qrCode, displayName: row.parentPlant.species.displayName }
       : null,
     owner: row.owner ? { id: row.owner.id, name: row.owner.name, email: row.owner.email } : null,
+    isPublic: row.isPublic,
     images: row.images.map((image) => ({
       id: image.id,
       url: image.url,
@@ -177,8 +182,7 @@ export const plantService = {
       locationId: query.locationId,
       statusCode: query.status,
       originTypeCode: query.originType,
-      // CUSTOMER는 쿼리로 우회할 수 없도록 서버에서 강제로 본인 소유만 필터링한다.
-      ownerId: requestUser.role === 'CUSTOMER' ? requestUser.id : undefined,
+      ownerId: ownerScopeFilter(requestUser),
     };
     const pagination = { page: query.page, limit: query.limit, sort: query.sort, order: query.order };
 
@@ -214,8 +218,13 @@ export const plantService = {
     }
 
     const qrCode = await plantRepository.generateQrCode(prefix);
-    // ownerId는 클라이언트가 보낸 값을 무시하고 항상 요청자 본인으로 설정한다.
-    const created = await plantRepository.create({ ...input, qrCode, ownerId: requestUser.id });
+    const ownerId = resolveCreateOwnerId(input.ownerId ?? undefined, requestUser);
+    const created = await plantRepository.create({
+      ...input,
+      qrCode,
+      ownerId,
+      isPublic: input.isPublic ?? false,
+    });
     return toDetailDto(created);
   },
 
@@ -226,7 +235,8 @@ export const plantService = {
     }
     assertCanAccess(existing, requestUser);
 
-    const updated = await plantRepository.update(id, input);
+    const sanitized = sanitizePlantUpdateForRole(input, requestUser);
+    const updated = await plantRepository.update(id, sanitized);
     return toDetailDto(updated);
   },
 

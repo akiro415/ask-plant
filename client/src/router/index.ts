@@ -14,7 +14,7 @@ const router = createRouter({
       component: () => import('@/views/LoginView.vue'),
       meta: { title: '로그인' },
     },
-    { path: '/', redirect: '/admin/dashboard' },
+    { path: '/', redirect: () => (localStorage.getItem('ask-plant.accessToken') ? '/admin/dashboard' : '/p') },
     {
       path: '/admin',
       component: () => import('@/layouts/AdminLayout.vue'),
@@ -26,19 +26,19 @@ const router = createRouter({
           path: 'dashboard',
           name: 'admin-dashboard',
           component: () => import('@/views/admin/DashboardView.vue'),
-          meta: { title: 'Dashboard', breadcrumb: ['Dashboard'], isMock: false },
+          meta: { title: 'Dashboard', breadcrumb: ['Dashboard'], isMock: false, roles: ['ADMIN', 'STAFF'] as UserRole[] },
         },
         {
           path: 'species',
           name: 'admin-species-list',
           component: () => import('@/views/admin/species/SpeciesListView.vue'),
-          meta: { title: '품종관리', breadcrumb: ['품종관리'], isMock: false },
+          meta: { title: '품종관리', breadcrumb: ['품종관리'], isMock: false, roles: ['ADMIN', 'STAFF'] as UserRole[] },
         },
         {
           path: 'species/:id',
           name: 'admin-species-detail',
           component: () => import('@/views/admin/species/SpeciesDetailView.vue'),
-          meta: { title: '품종 상세', breadcrumb: ['품종관리', '품종 상세'], isMock: false },
+          meta: { title: '품종 상세', breadcrumb: ['품종관리', '품종 상세'], isMock: false, roles: ['ADMIN', 'STAFF'] as UserRole[] },
         },
         {
           path: 'plants',
@@ -62,43 +62,43 @@ const router = createRouter({
           path: 'locations',
           name: 'admin-location-list',
           component: () => import('@/views/admin/locations/LocationListView.vue'),
-          meta: { title: '위치관리', breadcrumb: ['위치관리'], isMock: false },
+          meta: { title: '위치관리', breadcrumb: ['위치관리'], isMock: false, roles: ['ADMIN', 'STAFF'] as UserRole[] },
         },
         {
           path: 'locations/:id',
           name: 'admin-location-detail',
           component: () => import('@/views/admin/locations/LocationDetailView.vue'),
-          meta: { title: '위치 상세', breadcrumb: ['위치관리', '위치 상세'], isMock: false },
+          meta: { title: '위치 상세', breadcrumb: ['위치관리', '위치 상세'], isMock: false, roles: ['ADMIN', 'STAFF'] as UserRole[] },
         },
         {
           path: 'photos',
           name: 'admin-photo-list',
           component: () => import('@/views/admin/photos/PhotoListView.vue'),
-          meta: { title: '사진관리', breadcrumb: ['사진관리'], isMock: false },
+          meta: { title: '사진관리', breadcrumb: ['사진관리'], isMock: false, roles: ['ADMIN', 'STAFF'] as UserRole[] },
         },
         {
           path: 'qr',
           name: 'admin-qr-list',
           component: () => import('@/views/admin/qr/QrListView.vue'),
-          meta: { title: 'QR관리', breadcrumb: ['QR관리'], isMock: false },
+          meta: { title: 'QR관리', breadcrumb: ['QR관리'], isMock: false, roles: ['ADMIN', 'STAFF'] as UserRole[] },
         },
         {
           path: 'qr/:plantId',
           name: 'admin-qr-detail',
           component: () => import('@/views/admin/qr/QrDetailView.vue'),
-          meta: { title: 'QR 상세', breadcrumb: ['QR관리', 'QR 상세'], isMock: false },
+          meta: { title: 'QR 상세', breadcrumb: ['QR관리', 'QR 상세'], isMock: false, roles: ['ADMIN', 'STAFF'] as UserRole[] },
         },
         {
           path: 'common-codes',
           name: 'admin-common-codes',
           component: () => import('@/views/admin/common-codes/CommonCodeListView.vue'),
-          meta: { title: '공통코드', breadcrumb: ['공통코드'], isMock: false },
+          meta: { title: '공통코드', breadcrumb: ['공통코드'], isMock: false, roles: ['ADMIN', 'STAFF'] as UserRole[] },
         },
         {
           path: 'users',
           name: 'admin-user-list',
           component: () => import('@/views/admin/users/UserListView.vue'),
-          meta: { title: '사용자관리', breadcrumb: ['사용자관리'], isMock: false },
+          meta: { title: '사용자관리', breadcrumb: ['사용자관리'], isMock: false, roles: ['ADMIN'] as UserRole[] },
         },
         {
           path: 'users/:id',
@@ -110,7 +110,7 @@ const router = createRouter({
           path: 'settings',
           name: 'admin-settings',
           component: () => import('@/views/admin/settings/SettingsView.vue'),
-          meta: { title: '설정', breadcrumb: ['설정'], isMock: false },
+          meta: { title: '설정', breadcrumb: ['설정'], isMock: false, roles: ['ADMIN', 'STAFF'] as UserRole[] },
         },
       ],
     },
@@ -126,8 +126,8 @@ const router = createRouter({
     {
       path: '/cart',
       component: () => import('@/layouts/PublicLayout.vue'),
-      meta: { isMock: false, requiresAuth: true },
-      children: [{ path: '', name: 'public-cart', component: () => import('@/views/public/PublicCartView.vue'), meta: { isMock: false, requiresAuth: true } }],
+      meta: { isMock: false },
+      children: [{ path: '', name: 'public-cart', component: () => import('@/views/public/PublicCartView.vue'), meta: { isMock: false } }],
     },
     {
       path: '/:pathMatch(.*)*',
@@ -151,7 +151,7 @@ router.beforeEach(async (to) => {
   const auth = useAuthStore();
 
   if (to.path === '/login' && auth.isAuthenticated) {
-    return { path: '/admin/dashboard' };
+    return { path: auth.defaultAdminPath };
   }
 
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
@@ -172,7 +172,7 @@ router.beforeEach(async (to) => {
   // 현재는 어떤 /admin 라우트도 roles를 지정하지 않아 전체 로그인 사용자가 접근 가능하다.
   const allowedRoles = to.matched.flatMap((record) => (record.meta.roles as UserRole[] | undefined) ?? []);
   if (allowedRoles.length > 0 && !auth.hasRole(...allowedRoles)) {
-    return { path: '/admin/dashboard' };
+    return { path: auth.defaultAdminPath };
   }
 
   return true;

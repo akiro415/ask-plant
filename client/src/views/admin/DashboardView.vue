@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 import { useDashboardStore } from '@/stores/dashboard';
 import StatCard from '@/components/common/StatCard.vue';
 import StatusBadge from '@/components/common/StatusBadge.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
+import BaseTable from '@/components/base/BaseTable.vue';
 import { formatCurrency, formatDateTime } from '@/utils/format';
 
+const auth = useAuthStore();
 const dashboard = useDashboardStore();
 const summary = computed(() => dashboard.summary);
 const recentPart = computed(() => dashboard.recentPart);
+const showAdminStats = computed(() => auth.isAdmin && summary.value?.userStats);
 
 function statusCount(code: string): number {
   return summary.value?.statusDistribution.find((s) => s.code === code)?.count ?? 0;
@@ -57,7 +61,35 @@ onMounted(() => {
       <RouterLink to="/admin/locations" class="stat-card-link">
         <StatCard icon="📍" label="위치 수" :value="summary.locationCount" />
       </RouterLink>
+      <RouterLink v-if="summary.customerCount != null" to="/admin/users" class="stat-card-link">
+        <StatCard icon="👤" label="컬렉터 수" :value="summary.customerCount" />
+      </RouterLink>
     </div>
+
+    <section v-if="showAdminStats" class="panel admin-user-stats">
+      <h2 class="panel-title">사용자별 컬렉션 (ADMIN)</h2>
+      <BaseTable>
+        <thead>
+          <tr>
+            <th>사용자</th>
+            <th>역할</th>
+            <th>개체 수</th>
+            <th>판매 합계</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="row in summary.userStats" :key="row.userId">
+            <td>
+              <div>{{ row.name }}</div>
+              <div class="user-email">{{ row.email }}</div>
+            </td>
+            <td>{{ row.role }}</td>
+            <td>{{ row.plantCount }}</td>
+            <td>{{ formatCurrency(row.salesTotal) }}</td>
+          </tr>
+        </tbody>
+      </BaseTable>
+    </section>
 
     <div class="dashboard-grid">
       <section class="panel">
@@ -149,6 +181,15 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 1.25rem;
+}
+
+.user-email {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.admin-user-stats {
+  margin-bottom: 1.25rem;
 }
 
 .panel-title {

@@ -187,6 +187,7 @@ async function seedPlants(ownerId: string) {
         statusId: plantStatus.id,
         originTypeId: originType.id,
         ownerId,
+        isPublic: statusCode === 'FOR_SALE',
         sellingPrice: sellingPrice ?? undefined,
         deletedAt: null,
       },
@@ -196,6 +197,7 @@ async function seedPlants(ownerId: string) {
         locationId: location?.id,
         statusId: plantStatus.id,
         originTypeId: originType.id,
+        isPublic: statusCode === 'FOR_SALE',
         sellingPrice: sellingPrice,
         deletedAt: null,
       },
@@ -208,11 +210,16 @@ async function seedPlants(ownerId: string) {
 async function seedImages() {
   console.log('[7/9] PlantImage(테스트 사진) 생성/갱신 중...');
   for (const seed of IMAGE_SEEDS) {
+    const plant = await prisma.plant.findUnique({ where: { id: seed.plantId }, select: { ownerId: true } });
+    if (!plant?.ownerId) {
+      throw new Error(`Plant(${seed.plantId}) ownerId가 없습니다. seedPlants()가 먼저 실행되어야 합니다.`);
+    }
     await prisma.plantImage.upsert({
       where: { id: seed.id },
       create: {
         id: seed.id,
         plantId: seed.plantId,
+        ownerId: plant.ownerId,
         url: seed.url,
         imageType: seed.imageType,
         isPrimary: seed.isPrimary,
@@ -220,6 +227,7 @@ async function seedImages() {
       },
       update: {
         plantId: seed.plantId,
+        ownerId: plant.ownerId,
         url: seed.url,
         imageType: seed.imageType,
         isPrimary: seed.isPrimary,
@@ -242,12 +250,17 @@ async function seedHistories(adminId: string) {
     }
 
     const performedAt = new Date(Date.now() - seed.performedAtDaysAgo * 24 * 60 * 60 * 1000);
+    const plant = await prisma.plant.findUnique({ where: { id: seed.plantId }, select: { ownerId: true } });
+    if (!plant?.ownerId) {
+      throw new Error(`Plant(${seed.plantId}) ownerId가 없습니다.`);
+    }
 
     await prisma.plantHistory.upsert({
       where: { id: seed.id },
       create: {
         id: seed.id,
         plantId: seed.plantId,
+        ownerId: plant.ownerId,
         historyTypeId: historyType.id,
         performedById: adminId,
         performedAt,
@@ -257,6 +270,7 @@ async function seedHistories(adminId: string) {
       },
       update: {
         plantId: seed.plantId,
+        ownerId: plant.ownerId,
         historyTypeId: historyType.id,
         performedById: adminId,
         performedAt,
@@ -275,22 +289,55 @@ async function seedHistories(adminId: string) {
  * RBAC 도입 후 소유자 없는 개체가 CUSTOMER/ADMIN 어느 쪽에서도 조회되지 않는 것을 방지한다.
  */
 async function backfillPlantOwners(ownerId: string) {
-  console.log('[9/10] 기존 Plant ownerId 백필 중...');
-  const result = await prisma.plant.updateMany({
-    where: { ownerId: null },
-    data: { ownerId },
+  console.log('[9/12] 기존 Plant ownerId 백필 중...');
+  const result = await prisma.$executeRawUnsafe(
+    `UPDATE plants SET owner_id = $1 WHERE owner_id IS NULL`,
+    ownerId,
+  );
+  console.log(`[9/12] ownerId 백필 완료 (rows: ${result})`);
+}
+
+async function backfillImageHistoryOwners() {
+  console.log('[10/12] PlantImage/PlantHistory ownerId 백필 중...');
+  await prisma.$executeRawUnsafe(`
+    UPDATE plant_images pi SET owner_id = p.owner_id
+    FROM plants p WHERE pi.plant_id = p.id AND pi.owner_id IS NULL
+  `);
+  await prisma.$executeRawUnsafe(`
+    UPDATE plant_histories ph SET owner_id = p.owner_id
+    FROM plants p WHERE ph.plant_id = p.id AND ph.owner_id IS NULL
+  `);
+  console.log('[10/12] Image/History ownerId 백필 완료');
+}
+
+async function backfillPublicPlants() {
+  console.log('[11/12] FOR_SALE Plant isPublic 백필 중...');
+  const forSale = await prisma.commonCode.findUnique({
+    where: { groupCode_code: { groupCode: 'PLANT_STATUS', code: 'FOR_SALE' } },
   });
-  console.log(`[9/10] ownerId 없는 Plant ${result.count}건을 SYSTEM ADMIN(${ownerId})으로 백필 완료`);
+  if (!forSale) return;
+  const result = await prisma.plant.updateMany({
+    where: { statusId: forSale.id, isPublic: false },
+    data: { isPublic: true },
+  });
+  console.log(`[11/12] isPublic=true 설정 ${result.count}건`);
 }
 
 async function seedSystemSettings() {
-  console.log('[10/10] SystemSettings 생성/갱신 중...');
+  console.log('[12/12] SystemSettings 생성/갱신 중...');
   await prisma.systemSettings.upsert({
     where: { id: 'default' },
-    create: { id: 'default' },
-    update: {},
+    create: {
+      id: 'default',
+      bankAccountInfo: '110-123-456789',
+      bankAccountHolder: 'Ask Plant',
+    },
+    update: {
+      bankAccountInfo: '110-123-456789',
+      bankAccountHolder: 'Ask Plant',
+    },
   });
-  console.log('[10/10] SystemSettings OK');
+  console.log('[12/12] SystemSettings OK');
 }
 
 async function main() {
@@ -304,6 +351,8 @@ async function main() {
   await seedImages();
   await seedHistories(adminId);
   await backfillPlantOwners(adminId);
+  await backfillImageHistoryOwners();
+  await backfillPublicPlants();
   await seedSystemSettings();
   console.log('=== ask-plant seed 완료 ===');
   console.log('');

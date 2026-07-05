@@ -1,7 +1,8 @@
+import { assertOwnerAccess, ownerScopeFilter } from '../lib/rbac';
 import { historyRepository, type HistoryRow } from '../repositories/history.repository';
 import { plantRepository } from '../repositories/plant.repository';
 import { commonCodeRepository } from '../repositories/common-code.repository';
-import { ForbiddenError, NotFoundError, ValidationAppError } from '../middleware/errorHandler';
+import { NotFoundError, ValidationAppError } from '../middleware/errorHandler';
 import type {
   ListPlantHistoriesQuery,
   RecentHistoriesQuery,
@@ -81,20 +82,19 @@ function toRecentHistoryDto(row: HistoryRow): RecentHistoryDto {
   };
 }
 
-async function assertCanAccessPlant(plantId: string, requestUser: AuthenticatedUser): Promise<void> {
+async function assertCanAccessPlant(plantId: string, requestUser: AuthenticatedUser): Promise<string> {
   const plant = await plantRepository.findById(plantId);
   if (!plant || plant.deletedAt) throw new NotFoundError('개체를 찾을 수 없습니다');
-  if (requestUser.role === 'CUSTOMER' && plant.owner?.id !== requestUser.id) {
-    throw new ForbiddenError('본인 소유의 개체만 접근할 수 있습니다');
-  }
+  const ownerId = plant.owner?.id;
+  assertOwnerAccess(ownerId, requestUser);
+  if (!ownerId) throw new NotFoundError('개체 소유자 정보가 없습니다');
+  return ownerId;
 }
 
 async function assertCanAccessHistory(historyId: string, requestUser: AuthenticatedUser): Promise<HistoryRow> {
   const row = await historyRepository.findById(historyId);
   if (!row || row.plant.deletedAt) throw new NotFoundError('이력을 찾을 수 없습니다');
-  if (requestUser.role === 'CUSTOMER' && row.plant.ownerId !== requestUser.id) {
-    throw new ForbiddenError('본인 소유의 개체 이력만 접근할 수 있습니다');
-  }
+  assertOwnerAccess(row.ownerId, requestUser);
   return row;
 }
 
@@ -109,7 +109,7 @@ async function resolveHistoryTypeId(typeCode: string): Promise<string> {
 }
 
 function ownerFilter(requestUser: AuthenticatedUser): string | undefined {
-  return requestUser.role === 'CUSTOMER' ? requestUser.id : undefined;
+  return ownerScopeFilter(requestUser);
 }
 
 export const historyService = {
@@ -152,11 +152,12 @@ export const historyService = {
     input: CreatePlantHistoryInput,
     requestUser: AuthenticatedUser,
   ): Promise<HistoryDto> {
-    await assertCanAccessPlant(plantId, requestUser);
+    const ownerId = await assertCanAccessPlant(plantId, requestUser);
     const historyTypeId = await resolveHistoryTypeId(input.type);
 
     const row = await historyRepository.create({
       plant: { connect: { id: plantId } },
+      owner: { connect: { id: ownerId } },
       historyType: { connect: { id: historyTypeId } },
       performedBy: { connect: { id: requestUser.id } },
       performedAt: input.performedAt ?? new Date(),

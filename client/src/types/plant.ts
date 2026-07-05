@@ -48,6 +48,12 @@ export interface PlantSummary {
   createdAt: string;
 }
 
+export interface PlantOwnerRef {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export interface PlantDetail extends PlantSummary {
   purchasePrice: number | null;
   purchaseDate: string | null;
@@ -55,6 +61,8 @@ export interface PlantDetail extends PlantSummary {
   potSize: string | null;
   memo: string | null;
   parentPlant: PlantParentRef | null;
+  owner: PlantOwnerRef | null;
+  isPublic: boolean;
   childPlantCount: number;
   images: PlantImage[];
   histories: PlantHistory[];

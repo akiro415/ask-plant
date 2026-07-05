@@ -1,6 +1,7 @@
+import { assertOwnerAccess, ownerScopeFilter } from '../lib/rbac';
 import { imageRepository, type ImageRow } from '../repositories/image.repository';
 import { plantRepository } from '../repositories/plant.repository';
-import { ForbiddenError, NotFoundError } from '../middleware/errorHandler';
+import { NotFoundError } from '../middleware/errorHandler';
 import type {
   ListPlantImagesQuery,
   RecentImagesQuery,
@@ -69,20 +70,17 @@ function toRecentImageDto(row: ImageRow): RecentImageDto {
   };
 }
 
-async function assertCanAccessPlant(plantId: string, requestUser: AuthenticatedUser): Promise<void> {
+async function assertCanAccessPlant(plantId: string, requestUser: AuthenticatedUser): Promise<{ ownerId: string | null }> {
   const plant = await plantRepository.findById(plantId);
   if (!plant || plant.deletedAt) throw new NotFoundError('개체를 찾을 수 없습니다');
-  if (requestUser.role === 'CUSTOMER' && plant.owner?.id !== requestUser.id) {
-    throw new ForbiddenError('본인 소유의 개체만 접근할 수 있습니다');
-  }
+  assertOwnerAccess(plant.owner?.id, requestUser);
+  return { ownerId: plant.owner?.id ?? null };
 }
 
 async function assertCanAccessImage(imageId: string, requestUser: AuthenticatedUser): Promise<ImageRow> {
   const row = await imageRepository.findById(imageId);
   if (!row || row.plant.deletedAt) throw new NotFoundError('사진을 찾을 수 없습니다');
-  if (requestUser.role === 'CUSTOMER' && row.plant.ownerId !== requestUser.id) {
-    throw new ForbiddenError('본인 소유의 개체 사진만 접근할 수 있습니다');
-  }
+  assertOwnerAccess(row.ownerId, requestUser);
   return row;
 }
 
@@ -91,7 +89,7 @@ function resolveImageUrl(input: { url?: string; imageUrl?: string }): string {
 }
 
 function ownerFilter(requestUser: AuthenticatedUser): string | undefined {
-  return requestUser.role === 'CUSTOMER' ? requestUser.id : undefined;
+  return ownerScopeFilter(requestUser);
 }
 
 export const imageService = {
@@ -159,6 +157,10 @@ export const imageService = {
     requestUser: AuthenticatedUser,
   ): Promise<ImageDto> {
     await assertCanAccessPlant(plantId, requestUser);
+    const plant = await plantRepository.findById(plantId);
+    const ownerId = plant?.owner?.id;
+    if (!ownerId) throw new NotFoundError('개체 소유자 정보가 없습니다');
+
     const url = resolveImageUrl(input);
     const isPrimary = input.isPrimary ?? false;
 
@@ -168,6 +170,7 @@ export const imageService = {
 
     const row = await imageRepository.create({
       plant: { connect: { id: plantId } },
+      owner: { connect: { id: ownerId } },
       url,
       imageType: input.imageType as ImageType,
       caption: input.caption ?? null,

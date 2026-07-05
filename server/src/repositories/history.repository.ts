@@ -29,10 +29,8 @@ export interface HistoryFilters {
 }
 
 function buildWhere(filters: HistoryFilters): Prisma.PlantHistoryWhereInput {
-  const plantWhere: Prisma.PlantWhereInput = { deletedAt: null };
-  if (filters.ownerId) plantWhere.ownerId = filters.ownerId;
-
-  const where: Prisma.PlantHistoryWhereInput = { plant: plantWhere };
+  const where: Prisma.PlantHistoryWhereInput = { plant: { deletedAt: null } };
+  if (filters.ownerId) where.ownerId = filters.ownerId;
   if (filters.plantId) where.plantId = filters.plantId;
   if (filters.historyTypeCode) where.historyType = { code: filters.historyTypeCode };
   return where;

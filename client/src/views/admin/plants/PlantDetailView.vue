@@ -28,7 +28,11 @@ const showHistoryForm = ref(false);
 const editingHistory = ref<PlantHistory | null>(null);
 const showPlantForm = ref(false);
 
-const canManage = computed(() => auth.hasRole('ADMIN', 'STAFF'));
+const canManage = computed(() => {
+  if (auth.isOperator) return true;
+  if (auth.isCustomer && plant.value?.owner?.id === auth.user?.id) return true;
+  return false;
+});
 
 const loading = computed(() => store.detailLoading);
 const error = computed(() => store.detailError);

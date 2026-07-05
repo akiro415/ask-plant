@@ -44,6 +44,7 @@ export interface PublicListFilters {
 function buildPublicListWhere(filters: PublicListFilters): Prisma.PlantWhereInput {
   const where: Prisma.PlantWhereInput = {
     deletedAt: null,
+    isPublic: true,
     status: { code: filters.statusCode },
   };
   if (filters.speciesId) where.speciesId = filters.speciesId;
@@ -62,7 +63,7 @@ export const publicRepository = {
   /** DISCARDED 상태 개체는 QR 조회 결과에서 완전히 숨긴다 (docs/api-specification.md 12장). */
   async findByQrCode(qrCode: string): Promise<PublicPlantRow | null> {
     return prisma.plant.findFirst({
-      where: { qrCode, deletedAt: null, status: { code: { not: 'DISCARDED' } } },
+      where: { qrCode, deletedAt: null, isPublic: true, status: { code: { not: 'DISCARDED' } } },
       include: publicPlantInclude,
     });
   },

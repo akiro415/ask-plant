@@ -23,10 +23,8 @@ export interface ImageFilters {
 }
 
 function buildWhere(filters: ImageFilters): Prisma.PlantImageWhereInput {
-  const plantWhere: Prisma.PlantWhereInput = { deletedAt: null };
-  if (filters.ownerId) plantWhere.ownerId = filters.ownerId;
-
-  const where: Prisma.PlantImageWhereInput = { plant: plantWhere };
+  const where: Prisma.PlantImageWhereInput = { plant: { deletedAt: null } };
+  if (filters.ownerId) where.ownerId = filters.ownerId;
   if (filters.plantId) where.plantId = filters.plantId;
   if (filters.imageType) where.imageType = filters.imageType as Prisma.EnumImageTypeFilter['equals'];
   return where;

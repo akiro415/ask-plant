@@ -15,13 +15,26 @@ export interface DashboardRecentPlantDto {
   createdAt: string;
 }
 
-/** GET /api/v1/dashboard 응답 — server/src/services/dashboard.service.ts의 DashboardSummaryDto와 대응. ADMIN/STAFF 전용. */
+export interface DashboardUserStatDto {
+  userId: string;
+  name: string;
+  email: string;
+  role: string;
+  plantCount: number;
+  salesTotal: number;
+  lastActivityAt: string | null;
+}
+
+/** GET /api/v1/dashboard 응답 */
 export interface DashboardSummaryDto {
   plantCount: number;
   speciesCount: number;
   locationCount: number;
   recentPlants: DashboardRecentPlantDto[];
   statusDistribution: DashboardStatusCountDto[];
+  customerCount?: number;
+  nonStaffUserCount?: number;
+  userStats?: DashboardUserStatDto[];
 }
 
 interface DashboardSummaryResponse {

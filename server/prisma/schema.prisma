@@ -86,8 +86,11 @@ model User {
   updatedAt    DateTime @updatedAt
 
   ownedPlants    Plant[]        @relation("PlantOwner")
+  ownedImages    PlantImage[]   @relation("ImageOwner")
+  ownedHistories PlantHistory[] @relation("HistoryOwner")
   cartItems      Cart[]
   plantHistories PlantHistory[] @relation("HistoryPerformer")
+  orderRequests  OrderRequest[]
 
   @@map("users")
 }
@@ -199,7 +202,8 @@ model Plant {
   nickname       String?
   speciesId      String
   locationId     String?
-  ownerId        String?
+  ownerId        String
+  isPublic       Boolean    @default(false)
   parentPlantId  String?
   statusId       String
   originTypeId   String
@@ -236,6 +240,7 @@ model Plant {
   @@index([speciesId])
   @@index([locationId])
   @@index([ownerId])
+  @@index([isPublic])
   @@index([parentPlantId])
   @@index([statusId])
   @@index([originTypeId])
@@ -256,6 +261,7 @@ model Plant {
 model PlantImage {
   id        String    @id @default(cuid())
   plantId   String
+  ownerId   String
   url       String
   imageType ImageType @default(OTHER)
   caption   String?
@@ -264,9 +270,11 @@ model PlantImage {
   createdAt DateTime  @default(now())
 
   plant     Plant          @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  owner     User           @relation("ImageOwner", fields: [ownerId], references: [id])
   histories PlantHistory[] @relation("HistoryImage")
 
   @@index([plantId])
+  @@index([ownerId])
   @@index([plantId, imageType])
   @@map("plant_images")
 }
@@ -286,6 +294,7 @@ enum ImageType {
 model PlantHistory {
   id             String   @id @default(cuid())
   plantId        String
+  ownerId        String
   historyTypeId  String
   performedById  String?
   performedAt    DateTime @default(now())
@@ -299,6 +308,7 @@ model PlantHistory {
   createdAt      DateTime @default(now())
 
   plant        Plant          @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  owner        User           @relation("HistoryOwner", fields: [ownerId], references: [id])
   historyType  CommonCode     @relation("HistoryType", fields: [historyTypeId], references: [id])
   performedBy  User?          @relation("HistoryPerformer", fields: [performedById], references: [id])
   fromLocation PlantLocation? @relation("HistoryFromLocation", fields: [fromLocationId], references: [id])
@@ -306,6 +316,7 @@ model PlantHistory {
   image        PlantImage?    @relation("HistoryImage", fields: [imageId], references: [id], onDelete: SetNull)
 
   @@index([plantId, performedAt])
+  @@index([ownerId])
   @@index([historyTypeId])
   @@index([performedById])
   @@index([imageId])
@@ -332,6 +343,31 @@ model Cart {
 }
 
 // ─────────────────────────────────────────────
+// 공개 구매 요청 (결제 전 — 관리자 확인용)
+// ─────────────────────────────────────────────
+model OrderRequest {
+  id            String   @id @default(cuid())
+  sessionId     String?
+  userId        String?
+  customerName  String?
+  customerPhone String?
+  customerEmail String?
+  items         Json
+  totalAmount   Decimal  @db.Decimal(12, 2)
+  status        String   @default("PENDING")
+  memo          String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([sessionId])
+  @@index([userId])
+  @@map("order_requests")
+}
+
+// ─────────────────────────────────────────────
 // 시스템 설정 (싱글톤 id='default')
 // ─────────────────────────────────────────────
 model SystemSettings {
@@ -344,6 +380,8 @@ model SystemSettings {
   notifyWeeklyReport     Boolean  @default(false)
   qrCodeDigits           Int      @default(6)
   labelPaperSize         String   @default("40mm x 30mm")
+  bankAccountInfo        String?
+  bankAccountHolder      String?
   updatedAt              DateTime @updatedAt
 
   @@map("system_settings")

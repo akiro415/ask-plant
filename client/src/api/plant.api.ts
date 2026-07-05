@@ -46,6 +46,8 @@ interface ApiPlantDetail extends ApiPlantSummary {
   potSize: string | null;
   memo: string | null;
   parentPlant: { id: string; qrCode: string; displayName: string } | null;
+  owner: { id: string; name: string; email: string } | null;
+  isPublic: boolean;
   images: { id: string; url: string; imageType: string; isPrimary: boolean }[];
   recentHistories: {
     id: string;
@@ -101,6 +103,8 @@ export interface CreatePlantPayload {
   totalSellingPrice?: number | null;
   purchaseVendor?: string | null;
   purchaseFarm?: string | null;
+  ownerId?: string | null;
+  isPublic?: boolean;
   purchaseDate?: string | null;
   seedDate?: string | null;
   potSize?: string | null;
@@ -185,6 +189,8 @@ function toDetail(dto: ApiPlantDetail): PlantDetail {
     potSize: dto.potSize,
     memo: dto.memo,
     parentPlant: dto.parentPlant,
+    owner: dto.owner,
+    isPublic: dto.isPublic,
     // 자식 개체 목록/개수를 내려주는 API가 아직 없어 0으로 고정한다.
     childPlantCount: 0,
     images: dto.images.map((image, index) => toImage(image, dto.id, index)),

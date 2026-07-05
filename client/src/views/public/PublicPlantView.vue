@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { usePublicPlantStore } from '@/stores/publicPlant';
 import { useCartStore } from '@/stores/cart';
+import { usePublicCartStore } from '@/stores/publicCart';
 import { useAuthStore } from '@/stores/auth';
 import ImageGallery from '@/components/common/ImageGallery.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
@@ -11,26 +12,34 @@ import { formatCurrency } from '@/utils/format';
 import { statusTone } from '@/utils/badge';
 
 const route = useRoute();
-const router = useRouter();
 const store = usePublicPlantStore();
 const cart = useCartStore();
+const publicCart = usePublicCartStore();
 const auth = useAuthStore();
 
 const inquirySent = ref(false);
 
-const inCart = computed(() => (store.plant ? cart.isInCart(store.plant.qrCode) : false));
+const inCart = computed(() => {
+  if (!store.plant) return false;
+  return auth.isAuthenticated ? cart.isInCart(store.plant.qrCode) : publicCart.isInCart(store.plant.qrCode);
+});
 
 function load() {
   store.fetchByQrCode(String(route.params.qrCode));
 }
 
 function addToCart() {
-  if (!store.plant) return;
-  if (!auth.isAuthenticated) {
-    void router.push({ path: '/login', query: { redirect: route.fullPath } });
+  if (!store.plant || store.plant.sellingPrice == null) return;
+  if (auth.isAuthenticated) {
+    void cart.addByQrCode(store.plant.qrCode);
     return;
   }
-  void cart.addByQrCode(store.plant.qrCode);
+  publicCart.addItem({
+    qrCode: store.plant.qrCode,
+    displayName: store.plant.nickname ?? store.plant.species.displayName,
+    imageUrl: store.plant.latestImage?.url ?? null,
+    priceSnapshot: store.plant.sellingPrice,
+  });
 }
 
 function sendInquiry() {

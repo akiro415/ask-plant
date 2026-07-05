@@ -112,7 +112,7 @@ export const plantRepository = {
     return `${prefix}-${String(sequence.lastNumber).padStart(6, '0')}`;
   },
 
-  async create(data: CreatePlantInput & { qrCode: string; ownerId: string }): Promise<PlantDetailRow> {
+  async create(data: CreatePlantInput & { qrCode: string; ownerId: string; isPublic?: boolean }): Promise<PlantDetailRow> {
     return prisma.plant.create({
       data: {
         qrCode: data.qrCode,
@@ -120,6 +120,7 @@ export const plantRepository = {
         statusId: data.statusId,
         originTypeId: data.originTypeId,
         ownerId: data.ownerId,
+        isPublic: data.isPublic ?? false,
         nickname: data.nickname ?? undefined,
         locationId: data.locationId ?? undefined,
         parentPlantId: data.parentPlantId ?? undefined,
@@ -152,6 +153,7 @@ export const plantRepository = {
         originTypeId: data.originTypeId ?? undefined,
         parentPlantId: data.parentPlantId === undefined ? undefined : data.parentPlantId,
         ownerId: data.ownerId === undefined ? undefined : data.ownerId,
+        isPublic: data.isPublic === undefined ? undefined : data.isPublic,
         purchasePrice: data.purchasePrice === undefined ? undefined : data.purchasePrice,
         sellingPrice:
           data.sellingPrice === undefined

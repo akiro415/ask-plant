@@ -1,4 +1,6 @@
 import { dashboardRepository } from '../repositories/dashboard.repository';
+import { isAdmin } from '../lib/rbac';
+import type { AuthenticatedUser } from '../types/express';
 
 const RECENT_PLANTS_LIMIT = 5;
 
@@ -17,17 +19,31 @@ export interface DashboardRecentPlantDto {
   createdAt: Date;
 }
 
+export interface DashboardUserStatDto {
+  userId: string;
+  name: string;
+  email: string;
+  role: string;
+  plantCount: number;
+  salesTotal: number;
+  lastActivityAt: Date | null;
+}
+
 export interface DashboardSummaryDto {
   plantCount: number;
   speciesCount: number;
   locationCount: number;
   recentPlants: DashboardRecentPlantDto[];
   statusDistribution: DashboardStatusCountDto[];
+  /** ADMIN 전용 */
+  customerCount?: number;
+  nonStaffUserCount?: number;
+  userStats?: DashboardUserStatDto[];
 }
 
 export const dashboardService = {
-  /** ADMIN/STAFF 전용 대시보드 요약 — 개수/최근 개체/상태 분포를 Prisma 집계(count/groupBy)로 조회한다. */
-  async getSummary(): Promise<DashboardSummaryDto> {
+  /** ADMIN/STAFF 대시보드 — ADMIN은 사용자별 통계 추가 */
+  async getSummary(requestUser: AuthenticatedUser): Promise<DashboardSummaryDto> {
     const [plantCount, speciesCount, locationCount, statusGroups, recentRows] = await Promise.all([
       dashboardRepository.countPlants(),
       dashboardRepository.countSpecies(),
@@ -52,7 +68,7 @@ export const dashboardService = {
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map(({ code, name, count }) => ({ code, name, count }));
 
-    return {
+    const base: DashboardSummaryDto = {
       plantCount,
       speciesCount,
       locationCount,
@@ -70,6 +86,39 @@ export const dashboardService = {
         createdAt: row.createdAt,
       })),
       statusDistribution,
+    };
+
+    if (!isAdmin(requestUser)) return base;
+
+    const [customerCount, nonStaffUserCount, plantByOwner, salesByOwner] = await Promise.all([
+      dashboardRepository.countActiveCustomers(),
+      dashboardRepository.countNonStaffUsers(),
+      dashboardRepository.plantCountByOwner(),
+      dashboardRepository.salesTotalByOwner(),
+    ]);
+
+    const ownerIds = [...new Set([...plantByOwner.map((p) => p.ownerId), ...salesByOwner.map((s) => s.ownerId)])];
+    const users = await dashboardRepository.findUsersByIds(ownerIds);
+    const plantCountMap = new Map(plantByOwner.map((p) => [p.ownerId, p.count]));
+    const salesMap = new Map(salesByOwner.map((s) => [s.ownerId, s.total]));
+
+    const userStats: DashboardUserStatDto[] = users
+      .map((u) => ({
+        userId: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        plantCount: plantCountMap.get(u.id) ?? 0,
+        salesTotal: salesMap.get(u.id) ?? 0,
+        lastActivityAt: u.updatedAt,
+      }))
+      .sort((a, b) => b.plantCount - a.plantCount);
+
+    return {
+      ...base,
+      customerCount,
+      nonStaffUserCount,
+      userStats,
     };
   },
 };

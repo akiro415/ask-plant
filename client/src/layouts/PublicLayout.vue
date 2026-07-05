@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import { useCartStore } from '@/stores/cart';
+import { usePublicCartStore } from '@/stores/publicCart';
 import { useAuthStore } from '@/stores/auth';
 
 const cart = useCartStore();
+const publicCart = usePublicCartStore();
 const auth = useAuthStore();
 
+const badgeCount = computed(() => (auth.isAuthenticated ? cart.badgeCount : publicCart.badgeCount));
+
 onMounted(() => {
-  if (auth.isAuthenticated) {
-    cart.loadCart();
-  }
+  if (auth.isAuthenticated) cart.loadCart();
 });
 
 watch(
@@ -27,7 +29,7 @@ watch(
       <RouterLink to="/p" class="public-logo">🌿 Ask Plant</RouterLink>
       <RouterLink to="/cart" class="public-cart-link">
         🛒
-        <span v-if="cart.badgeCount > 0" class="public-cart-count">{{ cart.badgeCount }}</span>
+        <span v-if="badgeCount > 0" class="public-cart-count">{{ badgeCount }}</span>
       </RouterLink>
     </header>
 

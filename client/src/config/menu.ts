@@ -9,9 +9,10 @@ export interface MenuItem {
 }
 
 export const ADMIN_MENU: MenuItem[] = [
-  { label: 'Dashboard', icon: '📊', to: '/admin/dashboard' },
+  { label: 'Dashboard', icon: '📊', to: '/admin/dashboard', roles: ['ADMIN', 'STAFF'] },
   { label: '품종관리', icon: '🌱', to: '/admin/species', roles: ['ADMIN', 'STAFF'] },
-  { label: '개체관리', icon: '🪴', to: '/admin/plants', roles: ['ADMIN', 'STAFF', 'CUSTOMER'] },
+  { label: '내 컬렉션', icon: '🪴', to: '/admin/plants', roles: ['CUSTOMER'] },
+  { label: '개체관리', icon: '🪴', to: '/admin/plants', roles: ['ADMIN', 'STAFF'] },
   { label: '위치관리', icon: '📍', to: '/admin/locations', roles: ['ADMIN', 'STAFF'] },
   { label: '사진관리', icon: '🖼️', to: '/admin/photos', roles: ['ADMIN', 'STAFF'] },
   { label: 'QR관리', icon: '🔗', to: '/admin/qr', roles: ['ADMIN', 'STAFF'] },

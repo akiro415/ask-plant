@@ -30,6 +30,9 @@ export const createPlantSchema = z.object({
   seedDate: nullableIsoDate(),
   potSize: nullableString(),
   memo: nullableString(),
+  /** ADMIN/STAFF만 유효 — CUSTOMER는 서비스에서 무시 */
+  ownerId: nullableString(),
+  isPublic: z.boolean().optional(),
 });
 
 /**
@@ -41,6 +44,7 @@ export const updatePlantSchema = createPlantSchema
   .partial()
   .extend({
     ownerId: nullableString(),
+    isPublic: z.boolean().optional(),
     soldAt: nullableIsoDate(),
   });
 

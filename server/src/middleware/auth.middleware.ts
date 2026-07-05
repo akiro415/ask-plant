@@ -24,7 +24,7 @@ export function authenticate(req: Request, _res: Response, next: NextFunction) {
   }
 }
 
-/** authenticate 이후 사용 — req.user.role이 roles에 포함되지 않으면 403 */
+/** authenticate 이후 사용 — req.user.role이 roles에 포함되지 않으면 403. 세부 RBAC는 server/src/lib/rbac.ts 참고. */
 export function requireRole(...roles: UserRole[]) {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user) {
