@@ -39,12 +39,24 @@ onMounted(() => {
     </div>
     <template v-else-if="summary">
     <div class="stat-grid">
-      <StatCard icon="🪴" label="총 식물수" :value="summary.plantCount" />
-      <StatCard icon="🌱" label="품종수" :value="summary.speciesCount" />
-      <StatCard icon="🏷️" label="판매중" :value="statusCount('FOR_SALE')" />
-      <StatCard icon="⏳" label="예약중" :value="statusCount('RESERVED')" />
-      <StatCard icon="✅" label="판매완료" :value="statusCount('SOLD')" />
-      <StatCard icon="📍" label="위치 수" :value="summary.locationCount" />
+      <RouterLink to="/admin/plants" class="stat-card-link">
+        <StatCard icon="🪴" label="총 식물수" :value="summary.plantCount" />
+      </RouterLink>
+      <RouterLink to="/admin/species" class="stat-card-link">
+        <StatCard icon="🌱" label="품종수" :value="summary.speciesCount" />
+      </RouterLink>
+      <RouterLink to="/admin/plants?status=FOR_SALE" class="stat-card-link">
+        <StatCard icon="🏷️" label="판매중" :value="statusCount('FOR_SALE')" />
+      </RouterLink>
+      <RouterLink to="/admin/plants?status=RESERVED" class="stat-card-link">
+        <StatCard icon="⏳" label="예약중" :value="statusCount('RESERVED')" />
+      </RouterLink>
+      <RouterLink to="/admin/plants?status=SOLD" class="stat-card-link">
+        <StatCard icon="✅" label="판매완료" :value="statusCount('SOLD')" />
+      </RouterLink>
+      <RouterLink to="/admin/locations" class="stat-card-link">
+        <StatCard icon="📍" label="위치 수" :value="summary.locationCount" />
+      </RouterLink>
     </div>
 
     <div class="dashboard-grid">
@@ -52,8 +64,10 @@ onMounted(() => {
         <h2 class="panel-title">전체 상태 분포</h2>
         <ul v-if="summary.statusDistribution.length > 0" class="status-dist-list">
           <li v-for="item in summary.statusDistribution" :key="item.code">
-            <StatusBadge :code="item.code" :label="item.name" />
-            <span class="status-dist-count">{{ item.count }}개</span>
+            <RouterLink :to="`/admin/plants?status=${item.code}`" class="status-dist-link">
+              <StatusBadge :code="item.code" :label="item.name" />
+              <span class="status-dist-count">{{ item.count }}개</span>
+            </RouterLink>
           </li>
         </ul>
         <EmptyState v-else message="상태 분포 데이터가 없습니다." icon="🏷️" />
@@ -151,10 +165,27 @@ onMounted(() => {
   gap: 0.6rem;
 }
 
-.status-dist-list li {
+.stat-card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.status-dist-link {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.status-dist-list li {
+  padding: 0;
+}
+
+.status-dist-link:hover {
+  opacity: 0.85;
 }
 
 .status-dist-count {

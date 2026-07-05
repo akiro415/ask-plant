@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useSpeciesStore } from '@/stores/species';
 import { usePlantStore } from '@/stores/plant';
 import { useUiStore } from '@/stores/ui';
@@ -14,6 +14,7 @@ import BaseButton from '@/components/base/BaseButton.vue';
 import BaseTable from '@/components/base/BaseTable.vue';
 
 const route = useRoute();
+const router = useRouter();
 const speciesStore = useSpeciesStore();
 const plantStore = usePlantStore();
 const ui = useUiStore();
@@ -35,6 +36,13 @@ onMounted(() => {
   plantStore.ensurePlantsLoaded();
 });
 watch(() => route.params.id, sync);
+
+async function handleDelete() {
+  if (!species.value) return;
+  if (!confirm(`'${species.value.displayName}' 품종을 삭제(비활성화)하시겠습니까?`)) return;
+  const ok = await speciesStore.deleteSpecies(species.value.id);
+  if (ok) router.push('/admin/species');
+}
 </script>
 
 <template>
@@ -54,8 +62,10 @@ watch(() => route.params.id, sync);
       <DetailPageActions
         v-if="canManage"
         list-to="/admin/species"
-        :can-delete="false"
+        :can-delete="true"
+        :delete-loading="speciesStore.deleteLoadingId === species.id"
         @edit="showForm = true"
+        @delete="handleDelete"
       />
       <DetailPageActions v-else list-to="/admin/species" :can-edit="false" :can-delete="false" />
     </div>

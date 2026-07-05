@@ -53,9 +53,33 @@ const form = ref({
   nickname: '',
   purchasePrice: '' as string | number,
   sellingPrice: '' as string | number,
+  flowerColor: '',
+  purchaseHeadCount: '' as string | number,
+  purchaseUnitPrice: '' as string | number,
+  currentHeadCount: '' as string | number,
+  unitSellingPrice: '' as string | number,
+  totalSellingPrice: '' as string | number,
+  purchaseVendor: '',
+  purchaseFarm: '',
   potSize: '',
   memo: '',
 });
+
+function toNullableString(value: string): string | null {
+  return value.trim() ? value.trim() : null;
+}
+
+function toNullableNumber(value: string | number): number | null {
+  if (value === '' || value === null) return null;
+  const n = Number(value);
+  return Number.isNaN(n) ? null : n;
+}
+
+function toNullableInt(value: string | number): number | null {
+  if (value === '' || value === null) return null;
+  const n = Number(value);
+  return Number.isNaN(n) ? null : Math.trunc(n);
+}
 
 const isFormValid = computed(() => Boolean(form.value.speciesId && form.value.statusId && form.value.originTypeId));
 const canSubmit = computed(
@@ -73,11 +97,19 @@ async function handleSubmit() {
     speciesId: form.value.speciesId,
     statusId: form.value.statusId,
     originTypeId: form.value.originTypeId,
-    nickname: form.value.nickname.trim() ? form.value.nickname.trim() : null,
-    purchasePrice: form.value.purchasePrice === '' ? null : Number(form.value.purchasePrice),
-    sellingPrice: form.value.sellingPrice === '' ? null : Number(form.value.sellingPrice),
-    potSize: form.value.potSize.trim() ? form.value.potSize.trim() : null,
-    memo: form.value.memo.trim() ? form.value.memo.trim() : null,
+    nickname: toNullableString(form.value.nickname),
+    purchasePrice: toNullableNumber(form.value.purchasePrice),
+    sellingPrice: toNullableNumber(form.value.sellingPrice),
+    flowerColor: toNullableString(form.value.flowerColor),
+    purchaseHeadCount: toNullableInt(form.value.purchaseHeadCount),
+    purchaseUnitPrice: toNullableNumber(form.value.purchaseUnitPrice),
+    currentHeadCount: toNullableInt(form.value.currentHeadCount),
+    unitSellingPrice: toNullableNumber(form.value.unitSellingPrice),
+    totalSellingPrice: toNullableNumber(form.value.totalSellingPrice),
+    purchaseVendor: toNullableString(form.value.purchaseVendor),
+    purchaseFarm: toNullableString(form.value.purchaseFarm),
+    potSize: toNullableString(form.value.potSize),
+    memo: toNullableString(form.value.memo),
   });
 
   if (created) {
@@ -90,7 +122,7 @@ async function handleSubmit() {
   <div>
     <PageHeader title="개체 등록" subtitle="새로운 개체(QR)를 등록합니다.">
       <template #actions>
-        <BaseButton variant="outline" size="sm" @click="router.push('/admin/plants')">← 목록으로</BaseButton>
+        <BaseButton variant="outline" size="sm" @click="router.push('/admin/plants')">← 목록</BaseButton>
       </template>
     </PageHeader>
 
@@ -137,13 +169,8 @@ async function handleSubmit() {
         </div>
 
         <div class="form-field">
-          <label for="purchasePrice">구매가</label>
-          <input id="purchasePrice" v-model="form.purchasePrice" type="number" min="0" placeholder="0" />
-        </div>
-
-        <div class="form-field">
-          <label for="sellingPrice">판매가</label>
-          <input id="sellingPrice" v-model="form.sellingPrice" type="number" min="0" placeholder="0" />
+          <label for="flowerColor">꽃색</label>
+          <input id="flowerColor" v-model="form.flowerColor" type="text" />
         </div>
 
         <div class="form-field">
@@ -156,6 +183,48 @@ async function handleSubmit() {
           <textarea id="memo" v-model="form.memo" rows="3" placeholder="특이사항을 입력하세요" />
         </div>
       </div>
+
+      <section class="sales-section">
+        <h2 class="sales-section-title">구입 · 판매 정보</h2>
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="purchaseHeadCount">구입두수</label>
+            <input id="purchaseHeadCount" v-model="form.purchaseHeadCount" type="number" min="0" step="1" />
+          </div>
+          <div class="form-field">
+            <label for="purchaseUnitPrice">구입 1두 가격</label>
+            <input id="purchaseUnitPrice" v-model="form.purchaseUnitPrice" type="number" min="0" step="1" />
+          </div>
+          <div class="form-field">
+            <label for="currentHeadCount">현재 두수</label>
+            <input id="currentHeadCount" v-model="form.currentHeadCount" type="number" min="0" step="1" />
+          </div>
+          <div class="form-field">
+            <label for="unitSellingPrice">두수별 판매가</label>
+            <input id="unitSellingPrice" v-model="form.unitSellingPrice" type="number" min="0" step="1" />
+          </div>
+          <div class="form-field">
+            <label for="totalSellingPrice">총 판매가</label>
+            <input id="totalSellingPrice" v-model="form.totalSellingPrice" type="number" min="0" step="1" />
+          </div>
+          <div class="form-field">
+            <label for="purchaseVendor">구입업체</label>
+            <input id="purchaseVendor" v-model="form.purchaseVendor" type="text" />
+          </div>
+          <div class="form-field">
+            <label for="purchaseFarm">구입농장</label>
+            <input id="purchaseFarm" v-model="form.purchaseFarm" type="text" placeholder="업체와 다를 수 있음" />
+          </div>
+          <div class="form-field">
+            <label for="purchasePrice">구매가(레거시)</label>
+            <input id="purchasePrice" v-model="form.purchasePrice" type="number" min="0" placeholder="0" />
+          </div>
+          <div class="form-field">
+            <label for="sellingPrice">판매가(레거시)</label>
+            <input id="sellingPrice" v-model="form.sellingPrice" type="number" min="0" placeholder="0" />
+          </div>
+        </div>
+      </section>
 
       <p v-if="store.createError" class="form-error">{{ store.createError }}</p>
 
@@ -242,5 +311,20 @@ async function handleSubmit() {
   margin-top: 1.5rem;
   padding-top: 1.25rem;
   border-top: 1px solid var(--color-border);
+}
+
+.sales-section {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft, #e8f5e9);
+  border: 1px solid var(--color-primary-lighter, #d8f3dc);
+}
+
+.sales-section-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 1rem;
 }
 </style>

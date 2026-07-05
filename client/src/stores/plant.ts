@@ -23,6 +23,9 @@ export const usePlantStore = defineStore('plant', () => {
   const updateLoading = ref(false);
   const updateError = ref<string | null>(null);
 
+  const deleteLoading = ref(false);
+  const deleteError = ref<string | null>(null);
+
   const searchQuery = ref('');
   const statusFilter = ref<string>('');
   const categoryFilter = ref<string>('');
@@ -174,6 +177,23 @@ export const usePlantStore = defineStore('plant', () => {
     }
   }
 
+  /** DELETE /api/v1/plants/:id — soft delete */
+  async function deletePlant(id: string): Promise<boolean> {
+    deleteLoading.value = true;
+    deleteError.value = null;
+    try {
+      await plantApi.remove(id);
+      plants.value = plants.value.filter((p) => p.id !== id);
+      if (currentPlant.value?.id === id) currentPlant.value = null;
+      return true;
+    } catch (error) {
+      deleteError.value = extractErrorMessage(error, '개체 삭제에 실패했습니다');
+      return false;
+    } finally {
+      deleteLoading.value = false;
+    }
+  }
+
   /** 자식 개체 조회 API가 아직 없어 항상 빈 배열을 반환한다 (알려진 제약사항). */
   function getChildren(_parentId: string): PlantSummary[] {
     return [];
@@ -190,6 +210,8 @@ export const usePlantStore = defineStore('plant', () => {
     createError,
     updateLoading,
     updateError,
+    deleteLoading,
+    deleteError,
     searchQuery,
     statusFilter,
     categoryFilter,
@@ -211,6 +233,7 @@ export const usePlantStore = defineStore('plant', () => {
     fetchPlantById,
     createPlant,
     updatePlant,
+    deletePlant,
     getChildren,
   };
 });

@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'warning' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 const props = withDefaults(
@@ -163,6 +163,15 @@ const classes = computed(() => [
 
 .base-btn--danger:hover:not(:disabled) {
   background: var(--color-danger-hover);
+}
+
+.base-btn--warning {
+  background: var(--color-warning);
+  color: #fff;
+}
+
+.base-btn--warning:hover:not(:disabled) {
+  background: #9a7209;
 }
 
 .base-btn--ghost {

@@ -10,6 +10,7 @@ withDefaults(
     saving?: boolean;
     deleteLoading?: boolean;
     deleteLabel?: string;
+    listLabel?: string;
   }>(),
   {
     editMode: false,
@@ -18,6 +19,7 @@ withDefaults(
     saving: false,
     deleteLoading: false,
     deleteLabel: '삭제',
+    listLabel: '목록',
   },
 );
 
@@ -43,7 +45,7 @@ const emit = defineEmits<{ edit: []; save: []; cancel: []; delete: [] }>();
       >
         {{ deleteLoading ? '처리 중...' : deleteLabel }}
       </BaseButton>
-      <BaseButton variant="secondary" size="sm" :to="listTo">목록으로</BaseButton>
+      <BaseButton variant="secondary" size="sm" :to="listTo">{{ listLabel }}</BaseButton>
     </template>
   </div>
 </template>

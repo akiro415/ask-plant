@@ -212,4 +212,8 @@ export const plantApi = {
     const { data } = await httpClient.put<ApiItemResponse<ApiPlantDetail>>(`/plants/${id}`, payload);
     return toDetail(data.data);
   },
+
+  async remove(id: string): Promise<void> {
+    await httpClient.delete(`/plants/${id}`);
+  },
 };

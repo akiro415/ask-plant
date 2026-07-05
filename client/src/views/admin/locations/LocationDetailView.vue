@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { useLocationStore } from '@/stores/location';
 import { usePlantStore } from '@/stores/plant';
 import { useUiStore } from '@/stores/ui';
@@ -23,6 +23,24 @@ const canManage = computed(() => auth.hasRole('ADMIN', 'STAFF'));
 
 const location = computed(() => store.findById(String(route.params.id)));
 const plants = computed(() => plantStore.plants.filter((p) => p.location?.id === location.value?.id));
+
+const hierarchyPath = computed(() => {
+  if (!location.value) return [];
+  const path: NonNullable<ReturnType<typeof store.findById>>[] = [];
+  let current: ReturnType<typeof store.findById> = location.value;
+  while (current) {
+    path.unshift(current);
+    current = current.parentId ? store.findById(current.parentId) : null;
+  }
+  return path;
+});
+
+async function handleDelete() {
+  if (!location.value) return;
+  if (!confirm(`'${location.value.name}' 위치를 삭제(비활성화)하시겠습니까?`)) return;
+  const ok = await store.deleteLocation(location.value.id);
+  if (ok) router.push('/admin/locations');
+}
 
 function sync() {
   ui.setBreadcrumbExtra(location.value?.name ?? null);
@@ -55,13 +73,22 @@ watch(location, sync);
       <DetailPageActions
         v-if="canManage"
         list-to="/admin/locations"
-        :can-delete="false"
+        :can-delete="true"
+        :delete-loading="store.deleteLoadingId === location.id"
         @edit="showForm = true"
+        @delete="handleDelete"
       />
       <DetailPageActions v-else list-to="/admin/locations" :can-edit="false" :can-delete="false" />
     </div>
 
     <section class="panel info-card">
+      <h2 class="info-card-title">위치 계층</h2>
+      <ol class="location-breadcrumb">
+        <li v-for="(node, index) in hierarchyPath" :key="node.id">
+          <RouterLink v-if="index < hierarchyPath.length - 1" :to="`/admin/locations/${node.id}`">{{ node.name }}</RouterLink>
+          <span v-else class="location-current">{{ node.name }}</span>
+        </li>
+      </ol>
       <div class="info-row"><span class="info-label">상위 위치</span><span class="info-value">{{ location.parentName ?? '최상위' }}</span></div>
       <div class="info-row"><span class="info-label">배치도</span><span class="info-value">{{ location.imagePath ?? '-' }}</span></div>
       <div class="info-row"><span class="info-label">좌표</span><span class="info-value">{{ location.posX ?? '-' }}, {{ location.posY ?? '-' }}</span></div>
@@ -123,5 +150,28 @@ watch(location, sync);
   display: flex;
   justify-content: center;
   margin-top: 0.5rem;
+}
+
+.location-breadcrumb {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+}
+
+.location-breadcrumb li:not(:last-child)::after {
+  content: '›';
+  margin-left: var(--space-1);
+  color: var(--color-text-secondary);
+}
+
+.location-current {
+  font-weight: 700;
+  color: var(--color-primary);
 }
 </style>

@@ -42,7 +42,7 @@ function goCreate() {
   <div>
     <PageHeader title="개체관리" subtitle="QR로 식별되는 개별 다육 개체를 관리합니다.">
       <template #actions>
-        <BaseButton variant="primary" @click="goCreate">개체 등록</BaseButton>
+        <BaseButton variant="primary" @click="goCreate">등록</BaseButton>
       </template>
     </PageHeader>
 

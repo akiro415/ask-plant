@@ -70,7 +70,7 @@ async function handleDelete(species: Species, event: Event) {
   <div>
     <PageHeader title="품종관리" subtitle="Species는 유통명(displayName) 중심으로 관리됩니다.">
       <template #actions>
-        <BaseButton v-if="canManage()" variant="primary" @click="openCreate">품종 등록</BaseButton>
+        <BaseButton v-if="canManage()" variant="primary" @click="openCreate">등록</BaseButton>
       </template>
     </PageHeader>
 

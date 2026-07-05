@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { useQrStore } from '@/stores/qr';
 import PageHeader from '@/components/common/PageHeader.vue';
 import FilterBar from '@/components/common/FilterBar.vue';
@@ -7,9 +8,11 @@ import StatusBadge from '@/components/common/StatusBadge.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import BaseButton from '@/components/base/BaseButton.vue';
 import BaseTable from '@/components/base/BaseTable.vue';
+import TableRowActions from '@/components/common/TableRowActions.vue';
 import { placeholderQr } from '@/utils/placeholder';
 
 const store = useQrStore();
+const router = useRouter();
 
 const localSearch = ref('');
 
@@ -32,7 +35,7 @@ function applySearch() {
   <div>
     <PageHeader title="QR관리" subtitle="개체별 QR코드를 조회하고 라벨을 미리봅니다.">
       <template #actions>
-        <BaseButton variant="outline" to="/admin/plants/new">개체 등록 (QR 자동발급)</BaseButton>
+        <BaseButton variant="outline" to="/admin/plants/new">등록</BaseButton>
         <BaseButton variant="primary" disabled title="라벨 일괄 인쇄 API는 아직 구현되지 않았습니다">라벨 일괄 인쇄</BaseButton>
       </template>
     </PageHeader>
@@ -65,7 +68,7 @@ function applySearch() {
               <th>QR코드</th>
               <th>품종</th>
               <th>상태</th>
-              <th colspan="2" class="col-actions">액션</th>
+              <th colspan="1" class="col-actions">액션</th>
             </tr>
           </thead>
           <tbody>
@@ -80,10 +83,14 @@ function applySearch() {
               <td>{{ item.speciesDisplayName }}</td>
               <td><StatusBadge :code="item.status.code" :label="item.status.name" /></td>
               <td class="col-actions" @click.stop>
-                <BaseButton variant="outline" size="sm" @click="store.selectPlant(item.plantId)">라벨</BaseButton>
-              </td>
-              <td class="col-actions" @click.stop>
-                <BaseButton variant="outline" size="sm" :to="`/admin/qr/${item.plantId}`">상세</BaseButton>
+                <TableRowActions
+                  :show-delete="false"
+                  edit-label="라벨"
+                  show-view
+                  view-label="상세"
+                  @edit="store.selectPlant(item.plantId)"
+                  @view="router.push(`/admin/qr/${item.plantId}`)"
+                />
               </td>
             </tr>
           </tbody>

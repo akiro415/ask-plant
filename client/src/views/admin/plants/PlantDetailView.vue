@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute, RouterLink } from 'vue-router';
+import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { usePlantStore } from '@/stores/plant';
 import { useHistoryStore } from '@/stores/history';
 import { useUiStore } from '@/stores/ui';
@@ -18,6 +18,7 @@ import { formatCurrency, formatDate } from '@/utils/format';
 import type { PlantHistory } from '@/types/history';
 
 const route = useRoute();
+const router = useRouter();
 const store = usePlantStore();
 const historyStore = useHistoryStore();
 const ui = useUiStore();
@@ -34,6 +35,27 @@ const error = computed(() => store.detailError);
 const plant = computed(() => store.currentPlant);
 const children = computed(() => (plant.value ? store.getChildren(plant.value.id) : []));
 const qrImage = computed(() => (plant.value ? placeholderQr(plant.value.qrCode) : ''));
+
+const computedPurchaseTotal = computed(() => {
+  if (!plant.value) return null;
+  const { purchaseHeadCount, purchaseUnitPrice, purchasePrice } = plant.value;
+  if (purchaseHeadCount != null && purchaseUnitPrice != null) return purchaseHeadCount * purchaseUnitPrice;
+  return purchasePrice;
+});
+
+const computedSalesTotal = computed(() => {
+  if (!plant.value) return null;
+  const { currentHeadCount, unitSellingPrice, totalSellingPrice, sellingPrice } = plant.value;
+  if (currentHeadCount != null && unitSellingPrice != null) return currentHeadCount * unitSellingPrice;
+  return totalSellingPrice ?? sellingPrice;
+});
+
+async function handleDeletePlant() {
+  if (!plant.value) return;
+  if (!confirm(`'${plant.value.qrCode}' 개체를 삭제하시겠습니까?`)) return;
+  const ok = await store.deletePlant(plant.value.id);
+  if (ok) router.push('/admin/plants');
+}
 
 function load() {
   ui.setBreadcrumbExtra(null);
@@ -90,8 +112,10 @@ watch(() => route.params.id, load);
         <DetailPageActions
           v-if="canManage"
           list-to="/admin/plants"
-          :can-delete="false"
+          :can-delete="true"
+          :delete-loading="store.deleteLoading"
           @edit="showPlantForm = true"
+          @delete="handleDeletePlant"
         />
         <DetailPageActions v-else list-to="/admin/plants" :can-edit="false" :can-delete="false" />
       </div>
@@ -115,14 +139,21 @@ watch(() => route.params.id, load);
           <div class="info-row"><span class="info-label">메모</span><span class="info-value">{{ plant.memo ?? '-' }}</span></div>
         </section>
 
+        <section class="panel info-card sales-highlight-panel">
+          <h2 class="info-card-title">판매 정보</h2>
+          <div class="sales-total">{{ formatCurrency(computedSalesTotal) }}</div>
+          <p class="sales-sub">두수 {{ plant.currentHeadCount ?? '-' }} × 단가 {{ formatCurrency(plant.unitSellingPrice) }}</p>
+          <div class="info-row"><span class="info-label">두수별 판매가</span><span class="info-value">{{ formatCurrency(plant.unitSellingPrice) }}</span></div>
+          <div class="info-row"><span class="info-label">현재 두수</span><span class="info-value">{{ plant.currentHeadCount ?? '-' }}</span></div>
+          <div class="info-row"><span class="info-label">저장 총판매가</span><span class="info-value">{{ formatCurrency(plant.totalSellingPrice ?? plant.sellingPrice) }}</span></div>
+        </section>
+
         <section class="panel info-card">
-          <h2 class="info-card-title">가격 · 두수 · 구입처</h2>
+          <h2 class="info-card-title">구입 · 재고</h2>
           <div class="info-row"><span class="info-label">꽃색</span><span class="info-value">{{ plant.flowerColor ?? '-' }}</span></div>
           <div class="info-row"><span class="info-label">구입두수</span><span class="info-value">{{ plant.purchaseHeadCount ?? '-' }}</span></div>
           <div class="info-row"><span class="info-label">구입 1두 가격</span><span class="info-value">{{ formatCurrency(plant.purchaseUnitPrice) }}</span></div>
-          <div class="info-row"><span class="info-label">현재 두수</span><span class="info-value">{{ plant.currentHeadCount ?? '-' }}</span></div>
-          <div class="info-row"><span class="info-label">두수별 판매가</span><span class="info-value">{{ formatCurrency(plant.unitSellingPrice) }}</span></div>
-          <div class="info-row"><span class="info-label">총판매가</span><span class="info-value price-highlight">{{ formatCurrency(plant.totalSellingPrice ?? plant.sellingPrice) }}</span></div>
+          <div class="info-row"><span class="info-label">구입 총액 (계산)</span><span class="info-value">{{ formatCurrency(computedPurchaseTotal) }}</span></div>
           <div class="info-row"><span class="info-label">구입업체</span><span class="info-value">{{ plant.purchaseVendor ?? '-' }}</span></div>
           <div class="info-row"><span class="info-label">구입농장</span><span class="info-value">{{ plant.purchaseFarm ?? '-' }}</span></div>
           <div class="info-row"><span class="info-label">구매일</span><span class="info-value">{{ formatDate(plant.purchaseDate) }}</span></div>
@@ -171,7 +202,7 @@ watch(() => route.params.id, load);
     <section class="panel timeline-panel">
       <div class="timeline-panel-header">
         <h2 class="info-card-title">Timeline (이력)</h2>
-        <BaseButton variant="outline" size="sm" @click="openHistoryCreate">이력 등록</BaseButton>
+        <BaseButton v-if="canManage" variant="outline" size="sm" @click="openHistoryCreate">이력 등록</BaseButton>
       </div>
       <p v-if="historyStore.deleteError" class="form-error form-error--block">{{ historyStore.deleteError }}</p>
       <div v-if="historyStore.listLoading" class="timeline-loading">
@@ -180,7 +211,7 @@ watch(() => route.params.id, load);
       <Timeline
         v-else
         :histories="historyStore.histories"
-        show-actions
+        :show-actions="canManage"
         :delete-loading-id="historyStore.deleteLoadingId"
         @delete="handleDeleteHistory"
         @edit="openHistoryEdit"
@@ -271,6 +302,24 @@ watch(() => route.params.id, load);
 .price-highlight {
   color: var(--color-primary);
   font-size: 1rem;
+}
+
+.sales-highlight-panel {
+  border: 1px solid var(--color-primary-soft);
+  background: linear-gradient(135deg, var(--color-primary-soft) 0%, var(--color-surface) 100%);
+}
+
+.sales-total {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  margin-bottom: var(--space-1);
+}
+
+.sales-sub {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-3);
 }
 
 .qr-card-body {

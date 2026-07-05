@@ -1,10 +1,20 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { ADMIN_MENU } from '@/config/menu';
 import { useUiStore } from '@/stores/ui';
+import { useAuthStore } from '@/stores/auth';
 
 const route = useRoute();
 const ui = useUiStore();
+const auth = useAuthStore();
+
+const visibleMenu = computed(() =>
+  ADMIN_MENU.filter((item) => {
+    if (!item.roles || item.roles.length === 0) return true;
+    return auth.hasRole(...item.roles);
+  }),
+);
 
 function isActive(to: string): boolean {
   return route.path === to || route.path.startsWith(`${to}/`);
@@ -29,7 +39,7 @@ function onNavClick() {
     </div>
     <nav class="sidebar-nav">
       <RouterLink
-        v-for="item in ADMIN_MENU"
+        v-for="item in visibleMenu"
         :key="item.to"
         :to="item.to"
         class="sidebar-link"

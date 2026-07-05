@@ -73,7 +73,7 @@ async function handleDelete(location: PlantLocation, event: Event) {
   <div>
     <PageHeader title="위치관리" subtitle="온실 &gt; 구역 &gt; 선반의 계층 구조와 지도 좌표를 관리합니다.">
       <template #actions>
-        <BaseButton v-if="canManage()" variant="primary" @click="openCreate">위치 등록</BaseButton>
+        <BaseButton v-if="canManage()" variant="primary" @click="openCreate">등록</BaseButton>
       </template>
     </PageHeader>
 

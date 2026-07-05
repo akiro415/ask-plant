@@ -5,24 +5,29 @@ withDefaults(
   defineProps<{
     showEdit?: boolean;
     showDelete?: boolean;
+    showView?: boolean;
     deleteLoading?: boolean;
     editLabel?: string;
     deleteLabel?: string;
+    viewLabel?: string;
   }>(),
   {
     showEdit: true,
     showDelete: true,
+    showView: false,
     deleteLoading: false,
     editLabel: '수정',
     deleteLabel: '삭제',
+    viewLabel: '상세',
   },
 );
 
-const emit = defineEmits<{ edit: [event: MouseEvent]; delete: [event: MouseEvent] }>();
+const emit = defineEmits<{ edit: [event: MouseEvent]; delete: [event: MouseEvent]; view: [event: MouseEvent] }>();
 </script>
 
 <template>
   <div class="table-row-actions">
+    <IconButton v-if="showView" icon="view" :label="viewLabel" @click="emit('view', $event)" />
     <IconButton v-if="showEdit" icon="edit" :label="editLabel" @click="emit('edit', $event)" />
     <IconButton
       v-if="showDelete"
